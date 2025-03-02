@@ -73,9 +73,7 @@ export default function ResetPassword() {
                                 className={errors.password ? 'border-red-500' : ''}
                                 {...register('password')}
                             />
-                            {errors.password && (
-                                <p className='text-red-500 text-sm mt-1'>{errors.password.message}</p>
-                            )}
+                            {errors.password && <p className='text-red-500 text-sm mt-1'>{errors.password.message}</p>}
                         </div>
                         <div className='space-y-2'>
                             <Label htmlFor='confirmPassword'>Confirm New Password</Label>

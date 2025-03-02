@@ -52,9 +52,7 @@ export default function PasswordLogin() {
         <>
             <CardHeader className='space-y-1'>
                 <CardTitle className='text-2xl font-bold text-center'>Sign in with Password</CardTitle>
-                <CardDescription className='text-center'>
-                    Enter your credentials to access your account
-                </CardDescription>
+                <CardDescription className='text-center'>Enter your credentials to access your account</CardDescription>
             </CardHeader>
             <CardContent>
                 <form onSubmit={handleSubmit(onSubmit)}>
@@ -87,9 +85,7 @@ export default function PasswordLogin() {
                                 className={errors.password ? 'border-red-500' : ''}
                                 {...register('password')}
                             />
-                            {errors.password && (
-                                <p className='text-red-500 text-sm mt-1'>{errors.password.message}</p>
-                            )}
+                            {errors.password && <p className='text-red-500 text-sm mt-1'>{errors.password.message}</p>}
                         </div>
                         <div className='flex items-center space-x-2'>
                             <Checkbox id='remember' />
@@ -113,10 +109,7 @@ export default function PasswordLogin() {
             <CardFooter className='flex flex-col gap-4'>
                 <div className='text-sm text-center text-gray-500'>
                     Don't want to use a password?{' '}
-                    <NextLink
-                        href={PATH_AUTH.login.magic}
-                        className='text-blue-500 hover:text-blue-700 font-medium'
-                    >
+                    <NextLink href={PATH_AUTH.login.magic} className='text-blue-500 hover:text-blue-700 font-medium'>
                         Sign in with magic link
                     </NextLink>
                 </div>
@@ -130,7 +123,13 @@ export default function PasswordLogin() {
                 </div>
                 <div className='grid gap-3'>
                     <Button variant='outline' className='flex items-center gap-2'>
-                        <svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 48 48' className="mr-2">
+                        <svg
+                            xmlns='http://www.w3.org/2000/svg'
+                            width='24'
+                            height='24'
+                            viewBox='0 0 48 48'
+                            className='mr-2'
+                        >
                             <path
                                 fill='#ffc107'
                                 d='M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C12.955 4 4 12.955 4 24s8.955 20 20 20s20-8.955 20-20c0-1.341-.138-2.65-.389-3.917'

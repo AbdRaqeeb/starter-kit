@@ -1,10 +1,10 @@
 'use client';
 
-import { ReactNode } from 'react';
 import { Card } from '@workspace/ui/components/card';
+import { ReactNode } from 'react';
 
 interface AuthWrapperProps {
-  children: ReactNode;
+    children: ReactNode;
 }
 
 /**
@@ -12,9 +12,5 @@ interface AuthWrapperProps {
  * It wraps the content in a Card with consistent width and styling.
  */
 export function AuthWrapper({ children }: AuthWrapperProps) {
-  return (
-    <Card className="w-full max-w-md">
-      {children}
-    </Card>
-  );
-} 
+    return <Card className='w-full max-w-md'>{children}</Card>;
+}

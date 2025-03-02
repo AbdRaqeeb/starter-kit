@@ -120,12 +120,20 @@ export default function MagicLinkLogin() {
                                 <span className='w-full border-t border-gray-300 dark:border-gray-600' />
                             </div>
                             <div className='relative flex justify-center text-xs uppercase'>
-                                <span className='bg-background px-2 text-gray-500 dark:text-gray-400'>Or continue with</span>
+                                <span className='bg-background px-2 text-gray-500 dark:text-gray-400'>
+                                    Or continue with
+                                </span>
                             </div>
                         </div>
                         <div className='grid gap-3'>
                             <Button variant='outline' className='flex items-center gap-2'>
-                                <svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 48 48' className="mr-2">
+                                <svg
+                                    xmlns='http://www.w3.org/2000/svg'
+                                    width='24'
+                                    height='24'
+                                    viewBox='0 0 48 48'
+                                    className='mr-2'
+                                >
                                     <path
                                         fill='#ffc107'
                                         d='M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C12.955 4 4 12.955 4 24s8.955 20 20 20s20-8.955 20-20c0-1.341-.138-2.65-.389-3.917'
@@ -170,10 +178,7 @@ export default function MagicLinkLogin() {
                     </CardHeader>
                     <CardContent>
                         <div className='bg-blue-50 border border-blue-200 text-blue-800 rounded-md p-4 text-sm dark:bg-blue-950 dark:border-blue-900 dark:text-blue-200'>
-                            <p>
-                                Click the link in the email to sign in instantly. The link will expire in 10
-                                minutes.
-                            </p>
+                            <p>Click the link in the email to sign in instantly. The link will expire in 10 minutes.</p>
                         </div>
                     </CardContent>
                     <CardFooter className='flex flex-col space-y-2'>
@@ -183,7 +188,7 @@ export default function MagicLinkLogin() {
                         <div className='text-sm text-center text-gray-500'>
                             <span>Didn't receive the email? </span>
                             <button
-                                type="button"
+                                type='button'
                                 className='text-blue-500 hover:text-blue-700 font-medium bg-transparent border-0 p-0 cursor-pointer'
                                 onClick={isLoading ? null : () => onSubmit({ email: emailValue })}
                             >

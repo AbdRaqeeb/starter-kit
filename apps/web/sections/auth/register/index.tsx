@@ -85,9 +85,7 @@ export default function Register() {
                             className={`h-10 ${errors.firstName ? 'border-red-500' : ''}`}
                             {...register('firstName')}
                         />
-                        {errors.firstName && (
-                            <p className='text-red-500 text-sm mt-1'>{errors.firstName.message}</p>
-                        )}
+                        {errors.firstName && <p className='text-red-500 text-sm mt-1'>{errors.firstName.message}</p>}
                     </div>
                     <div className='space-y-1'>
                         <Label htmlFor='lastName'>Last name</Label>
@@ -142,10 +140,7 @@ export default function Register() {
                                 setValue('terms', checked === true, { shouldValidate: true });
                             }}
                         />
-                        <Label
-                            htmlFor='terms'
-                            className={`text-sm font-normal ${errors.terms ? 'text-red-500' : ''}`}
-                        >
+                        <Label htmlFor='terms' className={`text-sm font-normal ${errors.terms ? 'text-red-500' : ''}`}>
                             I agree to the{' '}
                             <a href='#' className='text-blue-600 hover:underline'>
                                 Terms of Service
@@ -157,11 +152,7 @@ export default function Register() {
                         </Label>
                     </div>
                     {errors.terms && <p className='text-red-500 text-sm mt-1'>{errors.terms.message}</p>}
-                    <Button
-                        type='submit'
-                        className='w-full h-10'
-                        disabled={isLoading}
-                    >
+                    <Button type='submit' className='w-full h-10' disabled={isLoading}>
                         {isLoading ? 'Creating account...' : 'Create account'}
                     </Button>
                 </form>

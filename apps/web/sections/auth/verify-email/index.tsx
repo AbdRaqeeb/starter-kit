@@ -30,10 +30,7 @@ export default function VerifyEmail() {
             <CardContent>
                 {isConfirmed ? (
                     <div className='bg-green-50 border border-green-200 text-green-800 rounded-md p-4 text-sm dark:bg-green-950 dark:border-green-900 dark:text-green-200'>
-                        <p>
-                            Your email has been successfully verified. You can now enjoy all features of our
-                            service.
-                        </p>
+                        <p>Your email has been successfully verified. You can now enjoy all features of our service.</p>
                     </div>
                 ) : (
                     <div className='bg-blue-50 border border-blue-200 text-blue-800 rounded-md p-4 text-sm dark:bg-blue-950 dark:border-blue-900 dark:text-blue-200'>

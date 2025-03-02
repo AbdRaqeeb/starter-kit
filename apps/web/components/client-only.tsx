@@ -1,11 +1,11 @@
 'use client';
 
 import { Loader2 } from 'lucide-react';
-import { useEffect, useState, ReactNode } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 
 interface ClientOnlyProps {
-  children: ReactNode;
-  fallback?: ReactNode;
+    children: ReactNode;
+    fallback?: ReactNode;
 }
 
 /**
@@ -14,19 +14,21 @@ interface ClientOnlyProps {
  * that might have client/server differences.
  */
 export function ClientOnly({ children, fallback }: ClientOnlyProps) {
-  const [isMounted, setIsMounted] = useState(false);
+    const [isMounted, setIsMounted] = useState(false);
 
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
 
-  if (!isMounted) {
-    return fallback || (
-      <div className="w-full flex items-center justify-center py-8">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
+    if (!isMounted) {
+        return (
+            fallback || (
+                <div className='w-full flex items-center justify-center py-8'>
+                    <Loader2 className='h-8 w-8 animate-spin text-primary' />
+                </div>
+            )
+        );
+    }
 
-  return <>{children}</>;
-} 
+    return <>{children}</>;
+}

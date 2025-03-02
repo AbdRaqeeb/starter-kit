@@ -78,10 +78,7 @@ export default function ForgotPassword() {
             <CardFooter className='flex justify-center'>
                 <div className='text-sm text-gray-500'>
                     Remember your password?{' '}
-                    <NextLink
-                        href={PATH_AUTH.login.magic}
-                        className='text-blue-500 hover:text-blue-700 font-medium'
-                    >
+                    <NextLink href={PATH_AUTH.login.magic} className='text-blue-500 hover:text-blue-700 font-medium'>
                         Back to login
                     </NextLink>
                 </div>

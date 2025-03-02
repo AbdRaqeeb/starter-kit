@@ -16,15 +16,15 @@ export default function ForgotPasswordSent() {
                 </div>
                 <CardTitle className='text-2xl font-bold text-center'>Check your email</CardTitle>
                 <CardDescription className='text-center'>
-                    We have sent a password reset link to your email address. Please check your inbox and click the
-                    link to reset your password.
+                    We have sent a password reset link to your email address. Please check your inbox and click the link
+                    to reset your password.
                 </CardDescription>
             </CardHeader>
             <CardContent>
                 <div className='bg-blue-50 border border-blue-200 text-blue-800 rounded-md p-4 text-sm dark:bg-blue-950 dark:border-blue-900 dark:text-blue-200'>
                     <p>
-                        If you don't see the email in your inbox, please check your spam folder or request a new
-                        reset link.
+                        If you don't see the email in your inbox, please check your spam folder or request a new reset
+                        link.
                     </p>
                 </div>
             </CardContent>
@@ -33,10 +33,7 @@ export default function ForgotPasswordSent() {
                     Resend email
                 </Button>
                 <div className='text-sm text-center text-gray-500'>
-                    <NextLink
-                        href={PATH_AUTH.login.magic}
-                        className='text-blue-500 hover:text-blue-700 font-medium'
-                    >
+                    <NextLink href={PATH_AUTH.login.magic} className='text-blue-500 hover:text-blue-700 font-medium'>
                         Back to login
                     </NextLink>
                 </div>

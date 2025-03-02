@@ -3,7 +3,7 @@ import { Geist, Geist_Mono } from 'next/font/google';
 import '@workspace/ui/styles/globals.css';
 import { CustomToaster } from '@/components/custom-toaster';
 import { Providers } from '@/components/providers';
-import { APP_NAME, APP_DESCRIPTION } from '@workspace/utils/constants';
+import { APP_DESCRIPTION, APP_NAME } from '@workspace/utils/constants';
 import { createMetadata } from '@workspace/utils/metadata';
 
 const fontSans = Geist({
