@@ -48,46 +48,44 @@ export default function ForgotPassword() {
     };
 
     return (
-        <div className='flex items-center justify-center min-h-screen bg-gray-100'>
-            <Card className='w-full max-w-md'>
-                <CardHeader className='space-y-1'>
-                    <CardTitle className='text-2xl font-bold text-center'>Forgot password</CardTitle>
-                    <CardDescription className='text-center'>
-                        Enter your email address and we'll send you a link to reset your password
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <form onSubmit={handleSubmit(onSubmit)}>
-                        <div className='space-y-4'>
-                            <div className='space-y-2'>
-                                <Label htmlFor='email'>Email</Label>
-                                <Input
-                                    id='email'
-                                    placeholder='name@example.com'
-                                    type='email'
-                                    className={errors.email ? 'border-red-500' : ''}
-                                    {...register('email')}
-                                />
-                                {errors.email && <p className='text-red-500 text-sm mt-1'>{errors.email.message}</p>}
-                            </div>
-                            <Button type='submit' className='w-full' disabled={isLoading}>
-                                {isLoading ? 'Sending...' : 'Send reset link'}
-                            </Button>
+        <Card className='w-full max-w-md'>
+            <CardHeader className='space-y-1'>
+                <CardTitle className='text-2xl font-bold text-center'>Forgot password</CardTitle>
+                <CardDescription className='text-center'>
+                    Enter your email address and we'll send you a link to reset your password
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <form onSubmit={handleSubmit(onSubmit)}>
+                    <div className='space-y-4'>
+                        <div className='space-y-2'>
+                            <Label htmlFor='email'>Email</Label>
+                            <Input
+                                id='email'
+                                placeholder='name@example.com'
+                                type='email'
+                                className={errors.email ? 'border-red-500' : ''}
+                                {...register('email')}
+                            />
+                            {errors.email && <p className='text-red-500 text-sm mt-1'>{errors.email.message}</p>}
                         </div>
-                    </form>
-                </CardContent>
-                <CardFooter className='flex justify-center'>
-                    <div className='text-sm text-gray-500'>
-                        Remember your password?{' '}
-                        <NextLink
-                            href={PATH_AUTH.login.magic}
-                            className='text-blue-500 hover:text-blue-700 font-medium'
-                        >
-                            Back to login
-                        </NextLink>
+                        <Button type='submit' className='w-full' disabled={isLoading}>
+                            {isLoading ? 'Sending...' : 'Send reset link'}
+                        </Button>
                     </div>
-                </CardFooter>
-            </Card>
-        </div>
+                </form>
+            </CardContent>
+            <CardFooter className='flex justify-center'>
+                <div className='text-sm text-gray-500'>
+                    Remember your password?{' '}
+                    <NextLink
+                        href={PATH_AUTH.login.magic}
+                        className='text-blue-500 hover:text-blue-700 font-medium'
+                    >
+                        Back to login
+                    </NextLink>
+                </div>
+            </CardFooter>
+        </Card>
     );
 }

@@ -1,6 +1,7 @@
 import type { Config } from "tailwindcss"
 import baseConfig from "@workspace/ui/tailwind.config"
 
+// @ts-ignore
 const config: Config = {
   content: [
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
