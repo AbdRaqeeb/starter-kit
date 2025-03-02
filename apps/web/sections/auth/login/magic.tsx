@@ -32,13 +32,8 @@ export default function MagicLinkLogin() {
         defaultValues: { email: '' },
     });
 
-    const {
-        register,
-        handleSubmit,
-        formState: { errors },
-        reset,
-        getValues,
-    } = methods;
+    const { register, handleSubmit, formState, reset } = methods;
+    const { errors } = formState;
 
     async function onSubmit(payload: MagicLinkFormData) {
         setIsLoading(true);
@@ -48,17 +43,17 @@ export default function MagicLinkLogin() {
                 email: payload.email,
                 callbackURL: PATH.dashboard,
             });
+            setIsLoading(false);
 
             if (error) {
-                toast.error(error.message || 'An error occurred');
-                setIsLoading(false);
+                toast.error(error?.message || 'An error occurred');
                 return;
             }
 
             setEmailValue(payload.email);
             setIsLinkSent(true);
         } catch (error) {
-            toast.error('An error occurred while sending the magic link');
+            toast.error(error?.message || 'An error occurred while sending the magic link');
             setIsLoading(false);
         }
     }
@@ -190,12 +185,7 @@ export default function MagicLinkLogin() {
                             <button
                                 type="button"
                                 className='text-blue-500 hover:text-blue-700 font-medium bg-transparent border-0 p-0 cursor-pointer'
-                                onClick={() => {
-                                    setIsLoading(true);
-                                    setTimeout(() => {
-                                        setIsLoading(false);
-                                    }, 1500);
-                                }}
+                                onClick={isLoading ? null : () => onSubmit({ email: emailValue })}
                             >
                                 {isLoading ? 'Sending...' : 'Resend'}
                             </button>

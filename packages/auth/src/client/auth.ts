@@ -7,7 +7,7 @@ export const auth = createAuthClient({
     baseURL: Config.serverUrl,
     plugins: [magicLinkClient(), emailOTPClient(), organizationClient()],
     fetchOptions: {
-        baseURL: Config.serverUrl,
+        // baseURL: Config.serverUrl,
         onError: (ctx) => {
             console.log('Error message', ctx.error.message, ctx.error.cause);
         },

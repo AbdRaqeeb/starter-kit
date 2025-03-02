@@ -22,6 +22,8 @@ const isProd = Config.nodeEnv === NODE_ENV.PRODUCTION;
 export const auth = betterAuth({
     appName: PROJECT_NAME,
     database: new Pool({ connectionString: Config.databaseUrl }),
+    secret: Config.betterAuthSecret,
+    trustedOrigins: Config.trustedOrigins,
     emailAndPassword: {
         enabled: true,
         sendResetPassword: betterAuthEmails.sendResetPasswordEmail,

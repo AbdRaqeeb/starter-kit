@@ -37,6 +37,7 @@ export interface Config {
     trustedOrigins: string[];
     redisUrl: string;
     baseDomain: string;
+    betterAuthSecret: string;
 }
 
 export interface ClientConfig {

@@ -44,5 +44,6 @@ export const getConfig = (): Config => {
         trustedOrigins: process.env.TRUSTED_ORIGINS?.split(',') || [],
         redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
         baseDomain: process.env.BASE_DOMAIN || 'example.com',
+        betterAuthSecret: process.env.BETTER_AUTH_SECRET || 'xxxxxxxxxxxxxxxxxxx',
     };
 };
