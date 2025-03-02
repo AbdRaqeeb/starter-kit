@@ -1,0 +1,24 @@
+{
+  "name": "shadcn-ui-monorepo",
+  "version": "0.0.1",
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@workspace/typescript-config": "workspace:*",
+    "prettier": "^3.2.5",
+    "turbo": "^2.3.0",
+    "typescript": "5.5.4"
+  },
+  "packageManager": "bun@1.2.4",
+  "private": true,
+  "scripts": {
+    "dev:api": "turbo run dev --filter=api",
+    "dev:web": "turbo run dev --filter=web",
+    "dev:landing": "turbo run dev --filter=landing",
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "lint": "turbo lint",
+    "format-and-lint": "biome check .",
+    "format-and-lint:fix": "biome check . --write"
+  },
+  "workspaces": ["packages/*", "apps/*"]
+}

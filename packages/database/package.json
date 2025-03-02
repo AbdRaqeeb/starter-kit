@@ -1,0 +1,24 @@
+{
+  "name": "@workspace/database",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "db:migrate": "bun --env-file .env.local knex migrate:latest --knexfile ./knex/knexfile.ts",
+    "db:migrate:test": "bun --env-file .env.test knex migrate:latest --knexfile ./knex/knexfile.ts --env test",
+    "db:rollback": "bun --env-file .env.local knex migrate:rollback --knexfile ./knex/knexfile.ts",
+    "db:rollback:test": "bun --env-file .env.test knex migrate:rollback --knexfile ./knex/knexfile.ts --env test"
+  },
+  "dependencies": {
+    "ioredis": "^5.5.0",
+    "knex": "^3.1.0",
+    "@workspace/utils": "workspace:*"
+  },
+  "devDependencies": {
+    "@workspace/typescript-config": "workspace:*"
+  },
+  "exports": {
+    "./types": "./src/types/index.ts",
+    "./redis": "./src/redis/index.ts",
+    ".": "./src/index.ts"
+  }
+}

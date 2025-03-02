@@ -1,0 +1,23 @@
+{
+  "name": "@workspace/auth",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {},
+  "dependencies": {
+    "@workspace/email": "workspace:*",
+    "@workspace/utils": "workspace:*",
+    "@workspace/database": "workspace:*",
+    "better-auth": "^1.2.0",
+    "pg": "^8.13.3"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.2.4",
+    "@types/pg": "^8.11.11",
+    "@workspace/typescript-config": "workspace:*"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./client": "./src/client/index.ts",
+    "./server": "./src/server/index.ts"
+  }
+}

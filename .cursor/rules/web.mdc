@@ -1,0 +1,410 @@
+---
+description: 
+globs: 
+---
+---
+description: Guidelines for building the RemindMe web applications (dashboard and landing)
+globs: apps/web/**/*.{ts,tsx,js,jsx},apps/landing/**/*.{ts,tsx,js,jsx}
+alwaysApply: true
+---
+You are an expert TypeScript software engineer and architect with over 10 years of industry experience. Your expertise spans the entire stack, with deep knowledge of React, Next.js, Tailwind CSS, and TypeScript.
+
+### Application Overview
+
+You're building **RemindMe**, a document expiry management system with the following web applications:
+- A dashboard application (apps/web) for users to manage documents and view notifications
+- A marketing landing page (apps/landing) with pricing plans
+
+<design_system>
+### Design System
+
+- Primary colors are black and white (monochromatic)
+- Use modern accent colors sparingly for highlights and interactive elements:
+  - Teal (#06b6d4) for primary actions
+  - Purple (#8b5cf6) for secondary elements
+  - Rose (#f43f5e) for warnings/errors
+- Clean, modern interface with ample white space
+- Consistent components through the shared UI package
+- Icons should reflect document expiry tracking (calendar, clock, notifications)
+- Logo features a clock/calendar element with "RemindMe" text in black
+</design_system>
+
+### Code Style and Structure
+
+- Write concise, technical TypeScript code with accurate examples
+- Use functional and declarative programming patterns; avoid classes
+- Prefer iteration and modularization over code duplication
+- Use descriptive variable names with auxiliary verbs (e.g., `isLoading`, `hasError`)
+- Structure files: exported component, subcomponents, helpers, static content, types
+
+### Frontend Components
+
+- Prefer Server Components over Client Components when possible to reduce client-side JavaScript
+- Avoid using `useEffect` unless absolutely necessary for client-side-only logic or interactions
+- Use shadcn/ui components with the default theme
+- Implement proper error boundaries and loading states for better user experience
+
+### Component Colocation
+
+When building Next.js applications, follow component co-location principles for better maintainability:
+- Co-locate simple, feature-specific components in a `_components` directory within that feature's folder
+- For shared components, use two main categories: UI components (from shadcn/ui) and app-specific reusable components
+
+The folder structure should look like this:
+```
+apps/
+  ├── web/
+  │   └── src/
+  │       ├── app/
+  │       │   ├── dashboard/
+  │       │   │   ├── page.tsx
+  │       │   │   └── _components/    # dashboard-specific components
+  │       │   ├── documents/
+  │       │   │   ├── page.tsx
+  │       │   │   └── _components/    # document-specific components
+  │       │   └── settings/
+  │       │       ├── page.tsx
+  │       │       └── _components/    # settings-specific components
+  │       └── components/            
+  │           ├── ui/                # shadcn/ui components
+  │           ├── layout/            # shared layout components
+  │           └── notifications/     # notification-related components
+  └── landing/
+      └── src/
+          ├── app/
+          │   ├── pricing/
+          │   │   ├── page.tsx
+          │   │   └── _components/   # pricing-specific components
+          │   └── features/
+          │       ├── page.tsx
+          │       └── _components/   # feature-specific components
+          └── components/
+              ├── ui/               # shadcn/ui components
+              └── layout/           # shared layout components
+```
+
+### Client vs Server Components
+
+- Components that require React hooks or interactivity need a "use client" directive
+- Otherwise, use Server Components to reduce client-side JavaScript
+- Server Components should handle data fetching and initial page rendering
+- Client Components should handle user interactions and state management
+
+
+### Naming Conventions
+
+- Use lowercase with dashes for directories (e.g., `components/document-card`)
+- Use kebab-case (`document-card.tsx`) for *all* components
+- Favor named exports for components
+
+### TypeScript Usage
+
+- Use TypeScript for all code; prefer interfaces over types
+- Avoid enums; use maps instead
+- Use functional components with TypeScript interfaces
+- Define proper types for documents, notifications, and user data
+
+### UI and Styling
+
+- Use Shadcn UI and Tailwind for components and styling
+- Implement responsive design with a mobile-first approach
+- Use the `cn` utility function for joining Tailwind classes
+- Use Tailwind v4 semantic classes (size-4 instead of h-4 w-4)
+
+### Implementation Examples
+
+### State Management with Zustand
+
+- Use Zustand for global state management instead of complex context providers
+- Create separate stores for different domains (documents, notifications, user)
+- Implement type-safe stores with TypeScript
+- Use slices for more complex state management when necessary
+
+Example of a Zustand store for documents:
+
+```tsx
+// src/stores/document-store.ts
+import { create } from 'zustand';
+import { betterFetch } from '@/lib/better-auth';
+import { toast } from 'sonner';
+
+interface Document {
+  id: string;
+  title: string;
+  description?: string;
+  expiry_date: string;
+  status: string;
+  user_id: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+interface DocumentState {
+  documents: Document[];
+  isLoading: boolean;
+  error: string | null;
+  fetchDocuments: () => Promise<void>;
+  createDocument: (document: Omit<Document, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
+  updateDocument: (id: string, document: Partial<Document>) => Promise<void>;
+  deleteDocument: (id: string) => Promise<void>;
+}
+
+export const useDocumentStore = create<DocumentState>((set, get) => ({
+  documents: [],
+  isLoading: false,
+  error: null,
+
+  fetchDocuments: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await betterFetch('/api/documents');
+      const data = await response.json();
+      set({ documents: data.data || [], isLoading: false });
+    } catch (error) {
+      console.error('Error fetching documents:', error);
+      set({ error: 'Failed to fetch documents', isLoading: false });
+      toast.error('Failed to fetch documents');
+    }
+  },
+
+  createDocument: async (document) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await betterFetch('/api/documents', {
+        method: 'POST',
+        body: JSON.stringify(document),
+      });
+      const data = await response.json();
+      set(state => ({
+        documents: [...state.documents, data.data],
+        isLoading: false
+      }));
+      toast.success('Document created successfully');
+    } catch (error) {
+      console.error('Error creating document:', error);
+      set({ error: 'Failed to create document', isLoading: false });
+      toast.error('Failed to create document');
+    }
+  },
+
+  updateDocument: async (id, document) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await betterFetch(`/api/documents/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(document),
+      });
+      const data = await response.json();
+      set(state => ({
+        documents: state.documents.map(doc =>
+          doc.id === id ? { ...doc, ...data.data } : doc
+        ),
+        isLoading: false
+      }));
+      toast.success('Document updated successfully');
+    } catch (error) {
+      console.error('Error updating document:', error);
+      set({ error: 'Failed to update document', isLoading: false });
+      toast.error('Failed to update document');
+    }
+  },
+
+  deleteDocument: async (id) => {
+    set({ isLoading: true, error: null });
+    try {
+      await betterFetch(`/api/documents/${id}`, {
+        method: 'DELETE',
+      });
+      set(state => ({
+        documents: state.documents.filter(doc => doc.id !== id),
+        isLoading: false
+      }));
+      toast.success('Document deleted successfully');
+    } catch (error) {
+      console.error('Error deleting document:', error);
+      set({ error: 'Failed to delete document', isLoading: false });
+      toast.error('Failed to delete document');
+    }
+  },
+}));
+```
+
+### Authentication
+
+```ts
+// middleware.ts
+import { betterFetch } from "@better-fetch/fetch";
+import type { auth } from "@/lib/auth";
+import { NextRequest, NextResponse } from "next/server";
+
+type Session = typeof auth.$Infer.Session;
+
+export async function middleware(request: NextRequest) {
+	const { data: session } = await betterFetch<Session>("/api/auth/get-session", {
+		baseURL: request.nextUrl.origin,
+		headers: {
+			cookie: request.headers.get("cookie") || "", // Forward the cookies from the request
+		},
+	});
+
+	if (!session) {
+		return NextResponse.redirect(new URL("/sign-in", request.url));
+	}
+
+	return NextResponse.next();
+}
+
+export const config = {
+	matcher: ["/dashboard"], // Apply middleware to specific routes
+};
+```
+
+### Data Fetching with BetterAuth
+
+- Use BetterAuth's betterFetch utility for API calls
+- Handle loading states and errors consistently
+- Use Zustand stores to manage API data
+- Use toast notifications for success/error feedback (toast.success, toast.error, toast.info)
+
+Example of setting up betterFetch:
+
+```tsx
+// src/lib/auth.ts
+import { createBetterAuth } from 'better-auth/client';
+
+export const { betterFetch, useAuth, useUser } = createBetterAuth({
+  baseUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:6050',
+  clientId: process.env.NEXT_PUBLIC_BETTER_AUTH_CLIENT_ID,
+});
+```
+
+### Client vs Server Components
+
+- Components that require React hooks or interactivity need a "use client" directive
+- Otherwise, use Server Components to reduce client-side JavaScript
+- Server Components should handle initial data loading and rendering
+- Client Components should handle user interactions and state management
+- Use Zustand stores in client components to manage global state
+
+### Naming Conventions
+
+- Use lowercase with dashes for directories (e.g., `components/document-card`)
+- Use kebab-case (`document-card.tsx`) for *all* components
+- Favor named exports for components
+
+### TypeScript Usage
+
+- Use TypeScript for all code; prefer interfaces over types
+- Avoid enums; use maps instead
+- Use functional components with TypeScript interfaces
+- Define proper types for documents, notifications, and user data
+
+### UI and Styling
+
+- Use Shadcn UI and Tailwind for components and styling
+- Implement responsive design with a mobile-first approach
+- Use the `cn` utility function for joining Tailwind classes
+- Use Tailwind v4 semantic classes (size-4 instead of h-4 w-4)
+
+### Application Features
+
+<dashboard_features>
+#### Dashboard Application Features
+
+1. **Authentication**
+   - Login/signup using BetterAuth
+   - Password reset flow
+   - Profile management
+   - Implement using BetterAuth hooks (useAuth, useUser)
+
+2. **Document Management**
+   - Create new documents with title, description, and expiry date
+   - Upload document files (optional)
+   - Edit existing documents
+   - Delete documents
+   - View document history/audit log
+   - Filter documents by status (active, expiring soon, expired)
+   - Manage state with Zustand document store
+
+3. **Notification Center**
+   - View notifications about expiring documents
+   - Mark notifications as read
+   - Configure notification preferences
+   - Dashboard alerts for documents expiring soon
+   - Real-time updates using Zustand notification store
+
+4. **User Settings**
+   - Update profile information
+   - Toggle email notification preferences
+   - Change password
+   - Manage subscription
+   - Sync with BetterAuth user state
+
+5. **Admin Panel** (for admin users)
+   - Manage users (view, edit, delete)
+   - View all documents across users
+   - Monitor system-wide notifications
+   - Admin-specific Zustand store
+
+6. **Subscription Management**
+   - View current subscription plan
+   - See usage limits and current usage
+   - Upgrade subscription
+   - Payment integration
+   - Subscription state management via Zustand
+</dashboard_features>
+
+<landing_features>
+#### Landing Page Features
+
+1. **Homepage**
+   - Hero section explaining RemindMe
+   - Key features and benefits
+   - How it works section
+      - Detailed explanation of document management
+      - Notification system showcase
+      - User management features
+      - Security and compliance information
+   - Testimonials/use cases
+   - Pricing section
+       - Clear comparison between Free, Basic, and Premium plans
+       - Feature matrix showing what each plan includes
+       - Highlight limitations of free tier
+       - Call-to-action for signup/upgrade
+   - Call-to-action buttons
+   - Contact information
+      - Support Email
+  - FAQ Sections
+   
+   
+2. **Terms and Conditions**
+   - Product terms and conditions
+
+3. **Privacy Policies**
+    - Product privacy policies
+
+</landing_features>
+
+### Performance Optimization
+
+- Use dynamic loading for non-critical components
+- Optimize images: use proper formats, include size data, implement lazy loading
+- Implement proper caching strategies for data fetching
+- Monitor and optimize Web Vitals (LCP, CLS, FID)
+
+### Accessibility
+
+- Ensure proper contrast for text and interactive elements
+- Use semantic HTML elements
+- Implement keyboard navigation
+- Add ARIA attributes where necessary
+- Test with screen readers
+
+<package_management>
+### Package Management
+
+- Use `pnpm` as the primary package manager for the project
+- Install dependencies using `pnpm add [package-name]`
+- Install dev dependencies using `pnpm add -D [package-name]`
+- Install workspace dependencies using `pnpm add -w [package-name]`
+</package_management>

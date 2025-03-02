@@ -1,0 +1,29 @@
+{
+  "name": "@workspace/email",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "test": "bun --env-file=.env.test test",
+    "test:watch": "bun --env-file=.env.test test --watch",
+    "test:coverage": "bun --env-file=.env.test test --coverage"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.2.4",
+    "@types/nodemailer": "^6.4.17",
+    "@workspace/typescript-config": "workspace:*"
+  },
+  "dependencies": {
+    "@react-email/components": "^0.0.33",
+    "nodemailer": "^6.10.0",
+    "@workspace/utils": "workspace:*"
+  },
+  "exports": {
+    "./nodemailer": "./src/services/nodemailer.ts",
+    "./brevo": "./src/services/brevo.ts",
+    "./resend": "./src/services/resend.ts",
+    "./sendgrid": "./src/services/sendgrid.ts",
+    "./service": "./src/services/index.ts",
+    "./types": "./src/types/index.ts",
+    ".": "./src/index.ts"
+  }
+}

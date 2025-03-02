@@ -1,0 +1,21 @@
+{
+  "name": "@workspace/utils",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {},
+  "devDependencies": {
+    "@workspace/typescript-config": "workspace:*"
+  },
+  "exports": {
+    "./constants": "./src/constants/index.ts",
+    "./config": "./src/config/index.ts",
+    "./config/client": "./src/config/client.ts",
+    "./logger": "./src/logger/index.ts",
+    "./request": "./src/lib/request.ts",
+    "./metadata": "./src/lib/metadata.ts",
+    "./types": "./src/types/index.ts"
+  },
+  "dependencies": {
+    "pino": "^9.6.0"
+  }
+}

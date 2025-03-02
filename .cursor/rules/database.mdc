@@ -1,0 +1,440 @@
+---
+description: 
+globs: 
+---
+---
+description: Database guidelines for the RemindMe document expiry management system
+globs: packages/database/**/*.ts,apps/api/src/repositories/**/*.ts,knex/migrations/**/*.ts
+alwaysApply: true
+---
+You are an expert database engineer specializing in PostgreSQL with Knex migrations and TypeScript. You're building the database layer for RemindMe, a document expiry management system.
+
+<database_overview>
+### Database Overview
+
+RemindMe's database tracks:
+- Users and their roles (admin or regular)
+- Documents with expiry dates
+- Notifications related to expiring documents
+- Subscription plans and user limits
+</database_overview>
+
+<schema_design>
+### Schema Design
+
+Follow these guidelines for database schema design:
+
+- Use snake_case for all database objects (tables, columns)
+- Prefer text or varchar types over others when appropriate
+- Ensure proper indexing for frequently queried columns
+- Always include created_at and updated_at timestamps
+- Use NOT NULL constraints appropriately
+- Prefer FKs for referential integrity
+- Use appropriate constraints for data validation
+
+The base-api-hono repository already includes a users table. Extend the database with additional tables.
+</schema_design>
+
+<migrations>
+### Migrations
+
+Use Knex migrations for database schema management:
+
+1. Create migrations using the Makefile command:
+   ```bash
+   make migrate-add ARGS=add_documents_table
+   ```
+
+2. Implement migrations in the generated file at `knex/migrations/[timestamp]_add_documents_table.ts`:
+   ```typescript
+   import type { Knex } from 'knex';
+   import { PUBLIC_SCHEMA } from '../schemas';
+
+   export async function up(knex: Knex): Promise<void> {
+     await knex.raw(`
+       CREATE TABLE IF NOT EXISTS ${PUBLIC_SCHEMA}.documents (
+         id TEXT NOT NULL PRIMARY KEY,
+         title TEXT NOT NULL,
+         description TEXT,
+         file_path TEXT,
+         expiry_date TIMESTAMP NOT NULL,
+         status TEXT NOT NULL,
+         user_id TEXT NOT NULL REFERENCES ${PUBLIC_SCHEMA}.users(id),
+         created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+         updated_at TIMESTAMP NULL
+       );
+
+       -- Add indexes
+       CREATE INDEX IF NOT EXISTS idx_documents_user_id ON ${PUBLIC_SCHEMA}.documents(user_id);
+       CREATE INDEX IF NOT EXISTS idx_documents_expiry_date ON ${PUBLIC_SCHEMA}.documents(expiry_date);
+       CREATE INDEX IF NOT EXISTS idx_documents_status ON ${PUBLIC_SCHEMA}.documents(status);
+
+       -- Add trigger for updated_at
+       DROP TRIGGER IF EXISTS document_set_update_timestamp ON ${PUBLIC_SCHEMA}.documents;
+       CREATE TRIGGER document_set_update_timestamp
+         BEFORE UPDATE
+         ON ${PUBLIC_SCHEMA}.documents
+         FOR EACH ROW
+       EXECUTE FUNCTION
+         set_updated_timestamp();
+     `);
+   }
+
+   export async function down(knex: Knex): Promise<void> {
+     await knex.raw(`
+       DROP TABLE IF EXISTS ${PUBLIC_SCHEMA}.documents;
+     `);
+   }
+   ```
+
+3. Run migrations:
+   ```bash
+   make migrate-run
+   ```
+</migrations>
+
+<table_structure>
+### Table Structure
+
+#### users (existing from base-api-hono)
+- id TEXT NOT NULL PRIMARY KEY
+- first_name TEXT
+- last_name TEXT
+- full_name TEXT NOT NULL
+- email TEXT NOT NULL UNIQUE
+- username TEXT NOT NULL UNIQUE
+- email_verified BOOLEAN NOT NULL
+- image TEXT
+- receive_notification BOOLEAN NOT NULL DEFAULT FALSE
+- role TEXT NOT NULL DEFAULT 'user'
+- subscription_tier TEXT NOT NULL DEFAULT 'free'
+- created_at TIMESTAMP NOT NULL DEFAULT NOW()
+- updated_at TIMESTAMP
+
+#### documents
+- id TEXT NOT NULL PRIMARY KEY
+- title TEXT NOT NULL
+- description TEXT
+- file_path TEXT
+- expiry_date TIMESTAMP NOT NULL
+- status TEXT NOT NULL
+- user_id TEXT NOT NULL REFERENCES users(id)
+- created_at TIMESTAMP NOT NULL DEFAULT NOW()
+- updated_at TIMESTAMP
+
+#### notifications
+- id TEXT NOT NULL PRIMARY KEY
+- document_id TEXT NOT NULL REFERENCES documents(id)
+- user_id TEXT NOT NULL REFERENCES users(id)
+- type TEXT NOT NULL
+- status TEXT NOT NULL
+- sent_at TIMESTAMP
+- read_at TIMESTAMP
+- created_at TIMESTAMP NOT NULL DEFAULT NOW()
+- updated_at TIMESTAMP
+
+#### subscriptions
+- id TEXT NOT NULL PRIMARY KEY
+- user_id TEXT NOT NULL UNIQUE REFERENCES users(id)
+- plan TEXT NOT NULL
+- status TEXT NOT NULL
+- document_limit INTEGER NOT NULL
+- storage_limit INTEGER NOT NULL
+- start_date TIMESTAMP NOT NULL
+- end_date TIMESTAMP
+- created_at TIMESTAMP NOT NULL DEFAULT NOW()
+- updated_at TIMESTAMP
+</table_structure>
+
+<constants>
+### Constants and Enums
+
+Define constants for document statuses, notification types, etc. in a central location:
+
+```typescript
+// src/constants/custom.ts
+
+// Document statuses
+export const DOCUMENT_STATUS = {
+  ACTIVE: 'active',
+  EXPIRING_SOON: 'expiring_soon',
+  EXPIRED: 'expired',
+};
+
+// Notification types
+export const NOTIFICATION_TYPE = {
+  WARNING: 'warning', // 3 days before expiry
+  EXPIRY: 'expiry',   // day of expiry
+};
+
+// Notification statuses
+export const NOTIFICATION_STATUS = {
+  PENDING: 'pending',
+  SENT: 'sent',
+  READ: 'read',
+};
+
+// Subscription plans
+export const SUBSCRIPTION_PLAN = {
+  FREE: 'free',
+  BASIC: 'basic',
+  PREMIUM: 'premium',
+};
+
+// Subscription statuses
+export const SUBSCRIPTION_STATUS = {
+  ACTIVE: 'active',
+  CANCELED: 'canceled',
+  EXPIRED: 'expired',
+};
+
+// User roles
+export const USER_ROLE = {
+  USER: 'user',
+  ADMIN: 'admin',
+};
+```
+</constants>
+
+<repositories>
+### Repositories
+
+Create TypeScript repositories that follow the pattern in the base-api-hono:
+
+```typescript
+// src/repositories/document.ts
+import { Knex } from 'knex';
+import { DOCUMENTS } from '../database';
+import * as lib from '../lib';
+import { generateId } from '../lib';
+import { Document, DocumentCreate, DocumentFilter, DocumentRepository, DocumentUpdate } from '../types';
+
+interface DocumentStore {
+  DB: Knex;
+}
+
+export function newDocumentRepository(ds: DocumentStore): DocumentRepository {
+  async function create(data: DocumentCreate): Promise<Document> {
+    const payload = { ...data, id: generateId() };
+    const [result] = await ds.DB(DOCUMENTS).insert(payload).returning(lib.extractFieldNames(fields));
+    return result;
+  }
+
+  async function get(filter: DocumentFilter): Promise<Document> {
+    return findDocumentBaseQuery(ds.DB, filter).first(fields);
+  }
+
+  async function list(filter: DocumentFilter): Promise<Document[]> {
+    return findDocumentQuery(ds.DB, filter);
+  }
+
+  async function remove(filter: DocumentFilter): Promise<void> {
+    await ds.DB(DOCUMENTS).where(filter).del();
+  }
+
+  async function update(filter: DocumentFilter, data: DocumentUpdate): Promise<Document> {
+    const [result] = await ds.DB(DOCUMENTS)
+      .where(filter)
+      .update(data)
+      .returning(lib.extractFieldNames(fields));
+    return result;
+  }
+
+  function query(filter: DocumentFilter): Knex.QueryBuilder {
+    return findDocumentBaseQuery(ds.DB, filter);
+  }
+
+  return { create, get, list, remove, update, query };
+}
+
+function findDocumentBaseQuery(db: Knex, filter: DocumentFilter): Knex.QueryBuilder {
+  let query = db(`${DOCUMENTS} as d`);
+
+  if (filter.id) query.where('d.id', filter.id);
+  if (filter.user_id) query.where('d.user_id', filter.user_id);
+  if (filter.status) query.where('d.status', filter.status);
+
+  if (filter.search) {
+    query.where(function() {
+      this.whereRaw('LOWER(d.title) LIKE ?', [`%${filter.search.toLowerCase()}%`])
+        .orWhereRaw('LOWER(d.description) LIKE ?', [`%${filter.search.toLowerCase()}%`]);
+    });
+  }
+
+  // Filter by expiry date range
+  if (filter.expiry_from) query.where('d.expiry_date', '>=', filter.expiry_from);
+  if (filter.expiry_to) query.where('d.expiry_date', '<=', filter.expiry_to);
+
+  // Add range query for created_at
+  query = lib.addRangeQuery(query, filter, 'd');
+
+  return query;
+}
+
+function findDocumentQuery(db: Knex, filter: DocumentFilter): Knex.QueryBuilder {
+  let query = findDocumentBaseQuery(db, filter).orderBy('d.created_at', 'desc');
+  query = lib.addPaginationQuery(query, filter); // add pagination query
+  query.select(fields);
+
+  return query;
+}
+
+const fields = [
+  'd.id as id',
+  'd.title as title',
+  'd.description as description',
+  'd.file_path as file_path',
+  'd.expiry_date as expiry_date',
+  'd.status as status',
+  'd.user_id as user_id',
+  'd.created_at as created_at',
+  'd.updated_at as updated_at',
+];
+```
+</repositories>
+
+<database_constants>
+### Database Table Constants
+
+Update the database tables constants file:
+
+```typescript
+// src/database/tables.ts
+export const USERS = 'users';
+export const DOCUMENTS = 'documents';
+export const NOTIFICATIONS = 'notifications';
+export const SUBSCRIPTIONS = 'subscriptions';
+```
+</database_constants>
+
+<types>
+### Types
+
+Create TypeScript types for database entities:
+
+```typescript
+// src/types/document.ts
+import { Knex } from 'knex';
+import { PaginationParam, PaginationResponse, RangeFilter } from './custom';
+
+export interface Document {
+  id: string;
+  title: string;
+  description?: string;
+  file_path?: string;
+  expiry_date: Date;
+  status: string;
+  user_id: string;
+  created_at: Date;
+  updated_at?: Date;
+}
+
+export interface DocumentCreate {
+  id?: string;
+  title: string;
+  description?: string;
+  file_path?: string;
+  expiry_date: Date;
+  status: string;
+  user_id: string;
+}
+
+export type DocumentUpdate = Partial<DocumentCreate>;
+
+export interface DocumentFilter extends RangeFilter, PaginationParam {
+  id?: string;
+  user_id?: string;
+  status?: string;
+  search?: string;
+  expiry_from?: string;
+  expiry_to?: string;
+}
+
+export interface DocumentRepository {
+  create(data: DocumentCreate): Promise<Document>;
+  list(filter: DocumentFilter): Promise<Document[]>;
+  get(filter: DocumentFilter): Promise<Document>;
+  update(filter: DocumentFilter, data: DocumentUpdate): Promise<Document>;
+  remove(filter: DocumentFilter): Promise<void>;
+  query(filter: DocumentFilter): Knex.QueryBuilder;
+}
+
+export type DocumentResponse = Document;
+```
+</types>
+
+<expiry_tracking>
+### Document Expiry Tracking
+
+Implement document expiry tracking through cron jobs:
+
+1. Create a utility to check for expiring documents:
+
+```typescript
+// src/lib/document-expiry.ts
+import { DateTime } from 'luxon';
+import { DOCUMENT_STATUS } from '../constants';
+import { Repository } from '../types';
+
+export async function checkExpiringDocuments(repository: Repository) {
+  const today = DateTime.now().startOf('day');
+  const threeDaysFromNow = today.plus({ days: 3 }).endOf('day');
+
+  // Find documents expiring in the next 3 days
+  const expiringDocs = await repository.document.list({
+    status: DOCUMENT_STATUS.ACTIVE,
+    expiry_from: today.toISO(),
+    expiry_to: threeDaysFromNow.toISO()
+  });
+
+  return expiringDocs;
+}
+
+export async function checkExpiredDocuments(repository: Repository) {
+  const today = DateTime.now().endOf('day');
+
+  // Find documents that have expired
+  const expiredDocs = await repository.document.list({
+    status: DOCUMENT_STATUS.ACTIVE,
+    expiry_to: today.toISO()
+  });
+
+  return expiredDocs;
+}
+
+export async function updateDocumentStatus(repository: Repository, documentId: string, status: string) {
+  return repository.document.update({ id: documentId }, { status });
+}
+```
+
+2. Handle these document statuses in the notification service to trigger appropriate emails.
+</expiry_tracking>
+
+<best_practices>
+### Best Practices
+
+1. **Indexing**
+   - Always index columns used in WHERE clauses
+   - Create indexes for foreign keys
+   - Consider partial indexes for filtered queries
+
+2. **Data Validation**
+   - Implement validation at the database level when possible
+   - Use CHECK constraints for value validation
+   - Use NOT NULL for required fields
+
+3. **Performance**
+   - Use pagination for large result sets
+   - Consider using views for complex queries
+   - Monitor query performance
+
+4. **Security**
+   - Never trust client input
+   - Implement proper access control in repositories
+   - Use parameterized queries to prevent SQL injection
+
+5. **Transactions**
+   - Use transactions for operations that modify multiple tables
+   - Ensure proper error handling in transactions
+   - Keep transactions short and focused
+</best_practices>

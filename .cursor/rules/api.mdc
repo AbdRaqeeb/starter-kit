@@ -1,0 +1,1225 @@
+---
+description: 
+globs: 
+---
+<initialization>
+### Initialization
+
+Update the main application file to initialize services and repositories:
+
+```typescript
+// src/index.ts (update existing file)
+import './config';
+import { createNewServer } from './api';
+import Config from './config';
+import logger from './log';
+import project from './project';
+import { setupCronJobs } from './services/cron';
+import { documentService, notificationService } from './services';
+import { repository } from './repositories/repository';
+
+// Initialize cron jobs
+setupCronJobs(repository, documentService, notificationService);
+
+export default {
+  port: Config.port,
+  fetch: createNewServer().app.fetch,
+};
+
+// Rest of the file remains the same
+```
+</initialization>
+
+<testing>
+### Testing
+
+Create test files for the new functionality:
+
+```typescript
+// tests/unit/repositories/document.test.ts
+import { beforeAll, describe, expect, it } from 'bun:test';
+import { faker } from '@faker-js/faker';
+
+import { newDocumentRepository } from '../../../src/repositories';
+import { DocumentRepository } from '../../../src/types';
+import { DB, testDataService } from '../../utils';
+import { DOCUMENT_STATUS } from '../../../src/constants';
+
+describe('Document Repository', () => {
+  let documentRepository: DocumentRepository;
+
+  beforeAll(async () => {
+    documentRepository = newDocumentRepository({ DB });
+  });
+
+  describe('Create Document', () => {
+    it('should create document', async () => {
+      const { user } = await testDataService.createUser();
+      
+      const data = {
+        title: faker.lorem.sentence(),
+        description: faker.lorem.paragraph(),
+        expiry_date: faker.date.future(),
+        status: DOCUMENT_STATUS.ACTIVE,
+        user_id: user.id
+      };
+
+      const result = await documentRepository.create(data);
+
+      expect(result).toMatchObject({
+        title: data.title,
+        description: data.description,
+        expiry_date: data.expiry_date,
+        status: data.status,
+        user_id: data.user_id,
+      });
+    });
+  });
+
+  describe('List Documents', () => {
+    it('should list documents', async () => {
+      const { user } = await testDataService.createUser();
+      
+      const data = {
+        title: faker.lorem.sentence(),
+        description: faker.lorem.paragraph(),
+        expiry_date: faker.date.future(),
+        status: DOCUMENT_STATUS.ACTIVE,
+        user_id: user.id
+      };
+
+      await documentRepository.create(data);
+
+      const result = await documentRepository.list({ user_id: user.id });
+
+      expect(result).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            title: data.title,
+            description: data.description,
+            status: data.status,
+            user_id: user.id,
+          }),
+        ])
+      );
+    });
+  });
+
+  describe('Get Document', () => {
+    it('should get document', async () => {
+      const { user } = await testDataService.createUser();
+      
+      const data = {
+        title: faker.lorem.sentence(),
+        description: faker.lorem.paragraph(),
+        expiry_date: faker.date.future(),
+        status: DOCUMENT_STATUS.ACTIVE,
+        user_id: user.id
+      };
+
+      const document = await documentRepository.create(data);
+
+      const result = await documentRepository.get({ id: document.id });
+
+      expect(result).toMatchObject({
+        title: data.title,
+        description: data.description,
+        status: data.status,
+        user_id: user.id,
+      });
+    });
+  });
+
+  describe('Update Document', () => {
+    it('should update document', async () => {
+      const { user } = await testDataService.createUser();
+      
+      const data = {
+        title: faker.lorem.sentence(),
+        description: faker.lorem.paragraph(),
+        expiry_date: faker.date.future(),
+        status: DOCUMENT_STATUS.ACTIVE,
+        user_id: user.id
+      };
+
+      const document = await documentRepository.create(data);
+      
+      const newTitle = faker.lorem.sentence();
+
+      const result = await documentRepository.update(
+        { id: document.id }, 
+        { title: newTitle }
+      );
+
+      expect(result).toMatchObject({
+        title: newTitle,
+        description: data.description,
+        status: data.status,
+        user_id: user.id,
+      });
+    });
+  });
+
+  describe('Remove Document', () => {
+    it('should remove document', async () => {
+      const { user } = await testDataService.createUser();
+      
+      const data = {
+        title: faker.lorem.sentence(),
+        description: faker.lorem.paragraph(),
+        expiry_date: faker.date.future(),
+        status: DOCUMENT_STATUS.ACTIVE,
+        user_id: user.id
+      };
+
+      const document = await documentRepository.create(data);
+
+      // remove document
+      await documentRepository.remove({ id: document.id });
+
+      const result = await documentRepository.get({ id: document.id });
+
+      expect(result).toBeUndefined();
+    });
+  });
+});
+```
+</testing>
+
+<best_practices>
+### Best Practices
+
+1. **Error Handling**
+   - Use try/catch blocks for handling errors
+   - Log errors with appropriate context
+   - Return consistent error responses
+
+2. **Validation**
+   - Validate input data at the API layer
+   - Use Joi for schema validation
+   - Ensure required fields are present
+
+3. **Security**
+   - Authenticate all requests to protected endpoints
+   - Verify user permissions for resource access
+   - Sanitize user input to prevent injection attacks
+
+4. **Performance**
+   - Use pagination for listing resources
+   - Index database columns for frequent queries
+   - Cache frequently accessed data if appropriate
+
+5. **Code Organization**
+   - Follow the repository pattern
+   - Keep business logic in service layer
+   - Use dependency injection for better testability
+
+6. **Monitoring**
+   - Log important events and errors
+   - Track cron job execution
+   - Monitor email delivery status
+</best_practices>
+
+<package_management>
+### Package Management
+
+- Install additional dependencies:
+  ```bash
+  pnpm add cron date-fns
+  pnpm add -D @types/cron
+  ```
+
+- Ensure database packages are installed:
+  ```bash
+  pnpm add knex pg
+  ```
+</package_management>
+</services>
+
+
+#### Email Templates
+
+Create new email templates for document notifications:
+
+```tsx
+// packages/email/src/templates/DocumentWarning.tsx
+import { Body, Container, Head, Heading, Hr, Html, Link, Preview, Section, Text } from '@react-email/components';
+import { DocumentWarningProps } from '../types';
+
+export const DocumentWarning = ({ 
+  documentTitle = 'Important Document',
+  expiryDate = '2023-12-31', 
+  userName = 'User',
+  dashboardLink = 'https://remindme.com/dashboard'
+}: DocumentWarningProps) => {
+  return (
+    <Html>
+      <Head />
+      <Preview>Document Expiry Warning: {documentTitle}</Preview>
+      <Body style={main}>
+        <Container style={container}>
+          <Heading style={h1}>Document Expiry Warning</Heading>
+
+          <Text style={text}>Hi {userName},</Text>
+          <Text style={text}>
+            This is a reminder that your document <strong>{documentTitle}</strong> will expire on <strong>{expiryDate}</strong> (in 3 days).
+          </Text>
+
+          <Section style={warningContainer}>
+            <Text style={warningText}>Please take action before the document expires.</Text>
+          </Section>
+
+          <Text style={text}>
+            You may need to renew, update, or take other actions related to this document.
+          </Text>
+
+          <Section style={buttonContainer}>
+            <Link style={button} href={dashboardLink}>
+              View Document
+            </Link>
+          </Section>
+
+          <Hr style={hr} />
+
+          <Text style={footer}>
+            You received this notification because you enabled document expiry alerts.
+          </Text>
+          <Text style={footer}>
+            To manage your notification settings, visit your account preferences.
+          </Text>
+        </Container>
+      </Body>
+    </Html>
+  );
+};
+
+export default DocumentWarning;
+
+const main = {
+  backgroundColor: '#ffffff',
+  fontFamily:
+    '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen-Sans,Ubuntu,Cantarell,"Helvetica Neue",sans-serif',
+};
+
+const container = {
+  margin: '0 auto',
+  padding: '20px 0 48px',
+  width: '580px',
+};
+
+const h1 = {
+  color: '#1a1a1a',
+  fontSize: '24px',
+  fontWeight: '600',
+  lineHeight: '40px',
+  margin: '0 0 20px',
+};
+
+const text = {
+  color: '#444',
+  fontSize: '16px',
+  lineHeight: '24px',
+  margin: '0 0 10px',
+};
+
+const warningContainer = {
+  background: '#fff3cd',
+  borderRadius: '6px',
+  margin: '24px 0',
+  padding: '24px',
+  borderLeft: '4px solid #ffc107',
+};
+
+const warningText = {
+  color: '#664d03',
+  fontSize: '16px',
+  fontWeight: '600',
+  margin: '0',
+};
+
+const buttonContainer = {
+  margin: '24px 0',
+};
+
+const button = {
+  backgroundColor: '#06b6d4',
+  borderRadius: '6px',
+  color: '#fff',
+  fontSize: '16px',
+  fontWeight: '600',
+  lineHeight: '100%',
+  padding: '12px 24px',
+  textDecoration: 'none',
+  textAlign: 'center' as const,
+};
+
+const hr = {
+  borderColor: '#e5e5e5',
+  margin: '20px 0',
+};
+
+const footer = {
+  color: '#666666',
+  fontSize: '14px',
+  lineHeight: '24px',
+  margin: '0 0 4px',
+};
+```
+
+```tsx
+// packages/email/src/templates/DocumentExpiry.tsx
+import { Body, Container, Head, Heading, Hr, Html, Link, Preview, Section, Text } from '@react-email/components';
+import { DocumentExpiryProps } from '../types';
+
+export const DocumentExpiry = ({ 
+  documentTitle = 'Important Document',
+  expiryDate = '2023-12-31', 
+  userName = 'User',
+  dashboardLink = 'https://remindme.com/dashboard'
+}: DocumentExpiryProps) => {
+  return (
+    <Html>
+      <Head />
+      <Preview>Document Has Expired: {documentTitle}</Preview>
+      <Body style={main}>
+        <Container style={container}>
+          <Heading style={h1}>Document Has Expired</Heading>
+
+          <Text style={text}>Hi {userName},</Text>
+          <Text style={text}>
+            Your document <strong>{documentTitle}</strong> has expired on <strong>{expiryDate}</strong>.
+          </Text>
+
+          <Section style={expiryContainer}>
+            <Text style={expiryText}>Immediate action may be required.</Text>
+          </Section>
+
+          <Text style={text}>
+            Please take appropriate action regarding this expired document.
+          </Text>
+
+          <Section style={buttonContainer}>
+            <Link style={button} href={dashboardLink}>
+              View Document
+            </Link>
+          </Section>
+
+          <Hr style={hr} />
+
+          <Text style={footer}>
+            You received this notification because you enabled document expiry alerts.
+          </Text>
+          <Text style={footer}>
+            To manage your notification settings, visit your account preferences.
+          </Text>
+        </Container>
+      </Body>
+    </Html>
+  );
+};
+
+export default DocumentExpiry;
+
+const main = {
+  backgroundColor: '#ffffff',
+  fontFamily:
+    '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen-Sans,Ubuntu,Cantarell,"Helvetica Neue",sans-serif',
+};
+
+const container = {
+  margin: '0 auto',
+  padding: '20px 0 48px',
+  width: '580px',
+};
+
+const h1 = {
+  color: '#1a1a1a',
+  fontSize: '24px',
+  fontWeight: '600',
+  lineHeight: '40px',
+  margin: '0 0 20px',
+};
+
+const text = {
+  color: '#444',
+  fontSize: '16px',
+  lineHeight: '24px',
+  margin: '0 0 10px',
+};
+
+const expiryContainer = {
+  background: '#f8d7da',
+  borderRadius: '6px',
+  margin: '24px 0',
+  padding: '24px',
+  borderLeft: '4px solid #f43f5e',
+};
+
+const expiryText = {
+  color: '#721c24',
+  fontSize: '16px',
+  fontWeight: '600',
+  margin: '0',
+};
+
+const buttonContainer = {
+  margin: '24px 0',
+};
+
+const button = {
+  backgroundColor: '#06b6d4',
+  borderRadius: '6px',
+  color: '#fff',
+  fontSize: '16px',
+  fontWeight: '600',
+  lineHeight: '100%',
+  padding: '12px 24px',
+  textDecoration: 'none',
+  textAlign: 'center' as const,
+};
+
+const hr = {
+  borderColor: '#e5e5e5',
+  margin: '20px 0',
+};
+
+const footer = {
+  color: '#666666',
+  fontSize: '14px',
+  lineHeight: '24px',
+  margin: '0 0 4px',
+};
+```
+
+#### Update Email Templates Index
+
+Update the email templates index file to include the new templates:
+
+```tsx
+// packages/email/src/templates/index.tsx
+import { render } from '@react-email/components';
+import { EmailTypeParams } from '../types';
+import { EmailTypes } from '../types/enums';
+import DocumentExpiry from './DocumentExpiry';
+import DocumentWarning from './DocumentWarning';
+import ForgotPassword from './ForgotPassword';
+import SignInOtpEmail from './SignInOtpEmail';
+import VerifyEmail from './VerifyEmail';
+import WelcomeEmail from './WelcomeEmail';
+
+export function getEmailHtml<T extends EmailTypes>(emailType: T, emailTypeParams: EmailTypeParams[T]): Promise<string> {
+  if (emailType === EmailTypes.WelcomeEmail) {
+    return render(<WelcomeEmail {...(emailTypeParams as EmailTypeParams[EmailTypes.WelcomeEmail])} />);
+  }
+
+  if (emailType === EmailTypes.VerifyEmail) {
+    return render(<VerifyEmail {...(emailTypeParams as EmailTypeParams[EmailTypes.VerifyEmail])} />);
+  }
+
+  if (emailType === EmailTypes.ForgotPassword) {
+    return render(<ForgotPassword {...(emailTypeParams as EmailTypeParams[EmailTypes.ForgotPassword])} />);
+  }
+  
+  if (emailType === EmailTypes.SignInOtp) {
+    return render(<SignInOtpEmail {...(emailTypeParams as EmailTypeParams[EmailTypes.SignInOtp])} />);
+  }
+  
+  if (emailType === EmailTypes.DocumentWarning) {
+    return render(<DocumentWarning {...(emailTypeParams as EmailTypeParams[EmailTypes.DocumentWarning])} />);
+  }
+  
+  if (emailType === EmailTypes.DocumentExpiry) {
+    return render(<DocumentExpiry {...(emailTypeParams as EmailTypeParams[EmailTypes.DocumentExpiry])} />);
+  }
+
+  throw new Error('Invalid email type');
+}
+```
+
+#### Update Email Types
+
+Update the email types to include the new templates:
+
+```typescript
+// src/types/enums/custom.ts (update existing file)
+export enum EmailTypes {
+  WelcomeEmail = 'welcome-email',
+  VerifyEmail = 'verify-email',
+  ForgotPassword = 'forgot-password',
+  SignInOtp = 'sign-in-otp',
+  DocumentWarning = 'document-warning',
+  DocumentExpiry = 'document-expiry',
+}
+```
+
+```typescript
+// src/types/email.ts (update existing file)
+export interface DocumentWarningProps {
+  documentTitle: string;
+  expiryDate: string;
+  userName: string;
+  dashboardLink?: string;
+}
+
+export interface DocumentExpiryProps {
+  documentTitle: string;
+  expiryDate: string;
+  userName: string;
+  dashboardLink?: string;
+}
+
+export interface EmailTypeParams {
+  [EmailTypes.WelcomeEmail]: WelcomeEmailProps;
+  [EmailTypes.VerifyEmail]: VerifyEmailProps;
+  [EmailTypes.ForgotPassword]: ForgotPasswordEmailProps;
+  [EmailTypes.SignInOtp]: SignInOtpEmailProps;
+  [EmailTypes.DocumentWarning]: DocumentWarningProps;
+  [EmailTypes.DocumentExpiry]: DocumentExpiryProps;
+}
+```
+
+
+#### Notification Service
+
+Create a service for notification management:
+
+```typescript
+// src/services/notification.ts
+import { NOTIFICATION_STATUS, NOTIFICATION_TYPE } from '../constants';
+import { paginate } from '../lib';
+import * as types from '../types';
+import { emailService } from './email';
+import { EmailClient, EmailTypes } from '../types/enums';
+
+export function newNotificationService(
+  ns: types.NotificationRepository,
+  us: types.UserRepository,
+  es: types.EmailService = emailService
+): types.NotificationService {
+  async function create(data: types.NotificationCreate): Promise<types.NotificationResponse> {
+    return ns.create({
+      ...data,
+      status: NOTIFICATION_STATUS.PENDING
+    });
+  }
+
+  async function update(filter: types.NotificationFilter, data: types.NotificationUpdate): Promise<types.NotificationResponse> {
+    return ns.update(filter, data);
+  }
+
+  async function remove(filter: types.NotificationFilter): Promise<void> {
+    await ns.remove(filter);
+  }
+
+  async function list(filter: types.NotificationFilter): Promise<types.PaginationResponse<types.NotificationResponse>> {
+    const query = ns.query(filter);
+    const notifications = await ns.list(filter);
+
+    return paginate(query, filter, notifications);
+  }
+
+  async function get(filter: types.NotificationFilter): Promise<types.NotificationResponse> {
+    return ns.get(filter);
+  }
+
+  async function markAsRead(filter: types.NotificationFilter): Promise<types.NotificationResponse> {
+    return ns.update(filter, { 
+      status: NOTIFICATION_STATUS.READ,
+      read_at: new Date()
+    });
+  }
+
+  async function createDocumentExpiryNotification(
+    document: types.Document,
+    type: string
+  ): Promise<types.NotificationResponse> {
+    // Get user
+    const user = await us.get({ id: document.user_id });
+    
+    // Check if user wants notifications
+    if (!user || !user.receive_notification) {
+      return null;
+    }
+    
+    // Create notification
+    const notification = await create({
+      document_id: document.id,
+      user_id: document.user_id,
+      type,
+      status: NOTIFICATION_STATUS.PENDING
+    });
+    
+    return notification;
+  }
+
+  async function sendDocumentExpiryNotifications(): Promise<void> {
+    // Get pending notifications
+    const pendingNotifications = await ns.list({
+      status: NOTIFICATION_STATUS.PENDING
+    });
+    
+    for (const notification of pendingNotifications) {
+      try {
+        // Get user
+        const user = await us.get({ id: notification.user_id });
+        
+        if (!user || !user.email) {
+          continue;
+        }
+        
+        // Get document
+        const document = await ns.getDocument(notification.document_id);
+        
+        if (!document) {
+          continue;
+        }
+        
+        // Prepare email data
+        const emailType = notification.type === NOTIFICATION_TYPE.WARNING
+          ? EmailTypes.DocumentWarning
+          : EmailTypes.DocumentExpiry;
+        
+        const expiryDate = new Date(document.expiry_date).toLocaleDateString();
+        
+        // Send email
+        await es.send(
+          emailType,
+          { 
+            documentTitle: document.title,
+            expiryDate,
+            userName: user.first_name || user.full_name
+          },
+          {
+            to: user.email,
+            subject: notification.type === NOTIFICATION_TYPE.WARNING
+              ? `Reminder: Document "${document.title}" expires in 3 days`
+              : `Alert: Document "${document.title}" has expired`,
+          },
+          EmailClient.Sendgrid
+        );
+        
+        // Update notification
+        await ns.update({ id: notification.id }, {
+          status: NOTIFICATION_STATUS.SENT,
+          sent_at: new Date()
+        });
+      } catch (error) {
+        console.error(`Failed to send notification ${notification.id}:`, error);
+      }
+    }
+  }
+
+  return {
+    create,
+    update,
+    get,
+    list,
+    remove,
+    markAsRead,
+    createDocumentExpiryNotification,
+    sendDocumentExpiryNotifications
+  };
+}
+```
+
+#### Cron Service
+
+Create a service for running background jobs:
+
+```typescript
+// src/services/cron.ts
+import { CronJob } from 'cron';
+import logger from '../log';
+import { Repository } from '../types';
+import { NOTIFICATION_TYPE } from '../constants';
+
+export function setupCronJobs(
+  repository: Repository,
+  documentService: any,
+  notificationService: any
+): void {
+  // Check for documents expiring in 3 days - run daily at midnight
+  const expiringDocumentsJob = new CronJob(
+    '0 0 * * *', // Cron schedule: midnight every day
+    async function() {
+      try {
+        logger.info('Running expiring documents check');
+        
+        // Find documents expiring in 3 days
+        const expiringDocs = await documentService.checkExpiringDocuments();
+        
+        // Create notifications for each document
+        for (const doc of expiringDocs) {
+          await notificationService.createDocumentExpiryNotification(
+            doc,
+            NOTIFICATION_TYPE.WARNING
+          );
+        }
+        
+        logger.info(`Created ${expiringDocs.length} warning notifications`);
+      } catch (error) {
+        logger.error(error, 'Error in expiring documents cron job');
+      }
+    },
+    null, // onComplete
+    false, // start
+    'UTC' // timezone
+  );
+
+  // Check for expired documents - run daily at midnight
+  const expiredDocumentsJob = new CronJob(
+    '0 0 * * *', // Cron schedule: midnight every day
+    async function() {
+      try {
+        logger.info('Running expired documents check');
+        
+        // Find expired documents
+        const expiredDocs = await documentService.checkExpiredDocuments();
+        
+        // Create notifications for each document
+        for (const doc of expiredDocs) {
+          await notificationService.createDocumentExpiryNotification(
+            doc,
+            NOTIFICATION_TYPE.EXPIRY
+          );
+        }
+        
+        logger.info(`Created ${expiredDocs.length} expiry notifications`);
+      } catch (error) {
+        logger.error(error, 'Error in expired documents cron job');
+      }
+    },
+    null, // onComplete
+    false, // start
+    'UTC' // timezone
+  );
+
+  // Send notifications - run every hour
+  const sendNotificationsJob = new CronJob(
+    '0 * * * *', // Cron schedule: every hour
+    async function() {
+      try {
+        logger.info('Sending pending notifications');
+        
+        await notificationService.sendDocumentExpiryNotifications();
+        
+        logger.info('Completed sending notifications');
+      } catch (error) {
+        logger.error(error, 'Error in send notifications cron job');
+      }
+    },
+    null, // onComplete
+    false, // start
+    'UTC' // timezone
+  );
+
+  // Start the cron jobs
+  expiringDocumentsJob.start();
+  expiredDocumentsJob.start();
+  sendNotificationsJob.start();
+  
+  logger.info('Cron jobs initialized');
+}
+```
+---
+description: Guidelines for building the RemindMe API backend based on base-api-hono
+globs: apps/api/**/*.ts
+alwaysApply: true
+---
+You are an expert TypeScript backend engineer specializing in Hono.js APIs with extensive experience in the repository pattern, service-oriented architecture, and PostgreSQL database interactions using Knex.
+
+<api_overview>
+### API Overview
+
+You're building the backend for **RemindMe**, a document expiry management system that:
+- Manages users and their documents
+- Tracks document expiry dates
+- Sends notifications when documents are about to expire
+- Handles user subscriptions and limits
+
+This API is based on the base-api-hono repository (https://github.com/AbdRaqeeb/base-api-hono).
+</api_overview>
+
+<architecture>
+### Architecture
+
+Follow the existing architecture in base-api-hono:
+
+1. **Repository Layer** - Data access using Knex
+2. **Service Layer** - Business logic
+3. **API Layer** - HTTP endpoints using Hono
+4. **Email Service** - For sending notifications
+
+```
+apps/api/
+├── src/
+│   ├── api/                # HTTP route handlers
+│   │   ├── auth.ts         # Authentication routes (existing)
+│   │   ├── document.ts     # Document management routes
+│   │   ├── notification.ts # Notification routes
+│   │   └── subscription.ts # Subscription management routes
+│   ├── repositories/       # Data access layer
+│   │   ├── user.ts         # User repository (existing)
+│   │   ├── document.ts     # Document repository
+│   │   ├── notification.ts # Notification repository
+│   │   └── subscription.ts # Subscription repository
+│   ├── services/           # Business logic layer
+│   │   ├── user.ts         # User service (existing)
+│   │   ├── document.ts     # Document service
+│   │   ├── notification.ts # Notification service
+│   │   ├── cron.ts         # Cron job service
+│   │   └── email/          # Email service (existing)
+│   ├── types/              # TypeScript types
+│   └── lib/                # Utilities and helpers
+├── knex/                   # Database migrations
+│   └── migrations/         # Knex migration files
+└── tests/                  # Test files
+```
+</architecture>
+
+<api_implementation>
+### API Implementation
+
+#### Document Management
+
+Implement document-related endpoints following the existing pattern:
+
+```typescript
+// src/api/document.ts
+import { Hono } from 'hono';
+import { bearerAuth } from 'hono/bearer-auth';
+import { errorResponse, serverErrorResponse, successResponse } from '../lib';
+import { isValidAuthorization } from './middlewares';
+import { tokenService } from '../lib';
+import { HttpStatusCode } from '../types/enums';
+import { Context, PaginationParam } from '../types';
+import { documentService } from '../services';
+
+export function documentHttpService() {
+  const router = new Hono();
+
+  router.use('/*', async (c, next) => {
+    const authorization = c.req.header('Authorization');
+    if (!authorization) {
+      return errorResponse(c, HttpStatusCode.Unauthorized, 'Authorization header is required');
+    }
+
+    const { token, error } = isValidAuthorization(authorization);
+    if (error) {
+      return errorResponse(c, HttpStatusCode.Unauthorized, error);
+    }
+
+    try {
+      const decoded = tokenService.verify(token);
+      c.set('user', { id: decoded.id });
+      await next();
+    } catch (error) {
+      return errorResponse(c, HttpStatusCode.Unauthorized, 'Invalid token');
+    }
+  });
+
+  router.get('/', async (c: Context) => {
+    try {
+      const { page, size } = c.req.query() as PaginationParam;
+      const userId = c.get('user').id;
+      
+      const documents = await documentService.list({ user_id: userId, page, size });
+      
+      return successResponse(
+        c, 
+        HttpStatusCode.Ok, 
+        'Documents retrieved successfully', 
+        documents
+      );
+    } catch (error) {
+      return serverErrorResponse(c, 'DocumentHttpService.list', error);
+    }
+  });
+
+  router.get('/:id', async (c: Context) => {
+    try {
+      const id = c.req.param('id');
+      const userId = c.get('user').id;
+      
+      const document = await documentService.get({ id, user_id: userId });
+      
+      if (!document) {
+        return errorResponse(c, HttpStatusCode.NotFound, 'Document not found');
+      }
+      
+      return successResponse(
+        c, 
+        HttpStatusCode.Ok, 
+        'Document retrieved successfully', 
+        document
+      );
+    } catch (error) {
+      return serverErrorResponse(c, 'DocumentHttpService.get', error);
+    }
+  });
+
+  router.post('/', async (c: Context) => {
+    try {
+      const body = await c.req.json();
+      const userId = c.get('user').id;
+      
+      const document = await documentService.create({
+        ...body,
+        user_id: userId
+      });
+      
+      return successResponse(
+        c, 
+        HttpStatusCode.Created, 
+        'Document created successfully', 
+        document
+      );
+    } catch (error) {
+      return serverErrorResponse(c, 'DocumentHttpService.create', error);
+    }
+  });
+
+  router.put('/:id', async (c: Context) => {
+    try {
+      const id = c.req.param('id');
+      const body = await c.req.json();
+      const userId = c.get('user').id;
+      
+      const document = await documentService.get({ id, user_id: userId });
+      
+      if (!document) {
+        return errorResponse(c, HttpStatusCode.NotFound, 'Document not found');
+      }
+      
+      const updatedDocument = await documentService.update({ id }, body);
+      
+      return successResponse(
+        c, 
+        HttpStatusCode.Ok, 
+        'Document updated successfully', 
+        updatedDocument
+      );
+    } catch (error) {
+      return serverErrorResponse(c, 'DocumentHttpService.update', error);
+    }
+  });
+
+  router.delete('/:id', async (c: Context) => {
+    try {
+      const id = c.req.param('id');
+      const userId = c.get('user').id;
+      
+      const document = await documentService.get({ id, user_id: userId });
+      
+      if (!document) {
+        return errorResponse(c, HttpStatusCode.NotFound, 'Document not found');
+      }
+      
+      await documentService.remove({ id });
+      
+      return successResponse(
+        c, 
+        HttpStatusCode.Ok, 
+        'Document deleted successfully'
+      );
+    } catch (error) {
+      return serverErrorResponse(c, 'DocumentHttpService.delete', error);
+    }
+  });
+
+  return { router };
+}
+```
+
+#### Notification Endpoints
+
+Create endpoints for managing notifications:
+
+```typescript
+// src/api/notification.ts
+import { Hono } from 'hono';
+import { errorResponse, serverErrorResponse, successResponse } from '../lib';
+import { HttpStatusCode } from '../types/enums';
+import { Context, PaginationParam } from '../types';
+import { notificationService } from '../services';
+
+export function notificationHttpService() {
+  const router = new Hono();
+
+  router.get('/', async (c: Context) => {
+    try {
+      const { page, size } = c.req.query() as PaginationParam;
+      const userId = c.get('user').id;
+      
+      const notifications = await notificationService.list({ 
+        user_id: userId, 
+        page, 
+        size 
+      });
+      
+      return successResponse(
+        c, 
+        HttpStatusCode.Ok, 
+        'Notifications retrieved successfully', 
+        notifications
+      );
+    } catch (error) {
+      return serverErrorResponse(c, 'NotificationHttpService.list', error);
+    }
+  });
+
+  router.patch('/:id/read', async (c: Context) => {
+    try {
+      const id = c.req.param('id');
+      const userId = c.get('user').id;
+      
+      const notification = await notificationService.get({ id, user_id: userId });
+      
+      if (!notification) {
+        return errorResponse(c, HttpStatusCode.NotFound, 'Notification not found');
+      }
+      
+      const updatedNotification = await notificationService.markAsRead({ id });
+      
+      return successResponse(
+        c, 
+        HttpStatusCode.Ok, 
+        'Notification marked as read', 
+        updatedNotification
+      );
+    } catch (error) {
+      return serverErrorResponse(c, 'NotificationHttpService.markAsRead', error);
+    }
+  });
+
+  return { router };
+}
+```
+
+#### Register Routes
+
+Add the routes to the main application:
+
+```typescript
+// src/api/app.ts (update existing file)
+import { documentHttpService } from './document';
+import { notificationHttpService } from './notification';
+// ...existing imports
+
+export const createNewServer = (): Server => {
+  // ...existing code
+  
+  // mount routes
+  httpServices.authHttpService().registerAuthRoutes(router);
+  router.route('/documents', documentHttpService().router);
+  router.route('/notifications', notificationHttpService().router);
+  
+  app.route('/api', router);
+
+  return server;
+};
+```
+</api_implementation>
+
+<services>
+### Services Implementation
+
+#### Document Service
+
+Create a service for document management:
+
+```typescript
+// src/services/document.ts
+import { DOCUMENT_STATUS } from '../constants';
+import { paginate } from '../lib';
+import * as types from '../types';
+
+export function newDocumentService(
+  ds: types.DocumentRepository,
+  ns: types.NotificationRepository,
+  ss: types.SubscriptionRepository
+): types.DocumentService {
+  async function create(data: types.DocumentCreate): Promise<types.DocumentResponse> {
+    // Check subscription limits
+    const subscription = await ss.get({ user_id: data.user_id });
+    const currentDocCount = await ds.list({ user_id: data.user_id, count: true });
+    
+    if (subscription && currentDocCount.length >= subscription.document_limit) {
+      throw new Error('Document limit reached for your subscription tier');
+    }
+    
+    // Set initial status
+    const documentData = {
+      ...data,
+      status: DOCUMENT_STATUS.ACTIVE
+    };
+    
+    return ds.create(documentData);
+  }
+
+  async function update(filter: types.DocumentFilter, data: types.DocumentUpdate): Promise<types.DocumentResponse> {
+    return ds.update(filter, data);
+  }
+
+  async function remove(filter: types.DocumentFilter): Promise<void> {
+    await ds.remove(filter);
+  }
+
+  async function list(filter: types.DocumentFilter): Promise<types.PaginationResponse<types.DocumentResponse>> {
+    const query = ds.query(filter);
+    const documents = await ds.list(filter);
+
+    return paginate(query, filter, documents);
+  }
+
+  async function get(filter: types.DocumentFilter): Promise<types.DocumentResponse> {
+    return ds.get(filter);
+  }
+
+  async function checkExpiringDocuments(): Promise<types.Document[]> {
+    const today = new Date();
+    const threeDaysFromNow = new Date();
+    threeDaysFromNow.setDate(today.getDate() + 3);
+    
+    // Find documents expiring in the next 3 days
+    const expiringDocs = await ds.list({
+      status: DOCUMENT_STATUS.ACTIVE,
+      expiry_from: today.toISOString(),
+      expiry_to: threeDaysFromNow.toISOString()
+    });
+    
+    // Update status to expiring soon
+    for (const doc of expiringDocs) {
+      await ds.update({ id: doc.id }, { status: DOCUMENT_STATUS.EXPIRING_SOON });
+    }
+    
+    return expiringDocs;
+  }
+
+  async function checkExpiredDocuments(): Promise<types.Document[]> {
+    const today = new Date();
+    
+    // Find documents that have expired
+    const expiredDocs = await ds.list({
+      status: [DOCUMENT_STATUS.ACTIVE, DOCUMENT_STATUS.EXPIRING_SOON],
+      expiry_to: today.toISOString()
+    });
+    
+    // Update status to expired
+    for (const doc of expiredDocs) {
+      await ds.update({ id: doc.id }, { status: DOCUMENT_STATUS.EXPIRED });
+    }
+    
+    return expiredDocs;
+  }
+
+  return { 
+    create, 
+    update, 
+    get, 
+    list, 
+    remove,
+    checkExpiringDocuments,
+    checkExpiredDocuments
+  };
+}
