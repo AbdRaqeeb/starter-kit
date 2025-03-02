@@ -11,7 +11,7 @@ import { z } from 'zod';
 import { PATH, PATH_AUTH } from '@/routes';
 import { authClient } from '@workspace/auth/client';
 import { Button } from '@workspace/ui/components/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@workspace/ui/components/card';
+import { CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@workspace/ui/components/card';
 import { Input } from '@workspace/ui/components/input';
 import { Label } from '@workspace/ui/components/label';
 
@@ -69,7 +69,7 @@ export default function MagicLinkLogin() {
     };
 
     return (
-        <Card className='w-full max-w-md'>
+        <>
             {!isLinkSent ? (
                 <>
                     <CardHeader className='space-y-1'>
@@ -130,7 +130,7 @@ export default function MagicLinkLogin() {
                         </div>
                         <div className='grid gap-3'>
                             <Button variant='outline' className='flex items-center gap-2'>
-                                <svg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 48 48'>
+                                <svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 48 48' className="mr-2">
                                     <path
                                         fill='#ffc107'
                                         d='M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C12.955 4 4 12.955 4 24s8.955 20 20 20s20-8.955 20-20c0-1.341-.138-2.65-.389-3.917'
@@ -187,11 +187,10 @@ export default function MagicLinkLogin() {
                         </Button>
                         <div className='text-sm text-center text-gray-500'>
                             <span>Didn't receive the email? </span>
-                            <a
-                                href='#'
-                                className='text-blue-500 hover:text-blue-700 font-medium'
-                                onClick={(e) => {
-                                    e.preventDefault();
+                            <button
+                                type="button"
+                                className='text-blue-500 hover:text-blue-700 font-medium bg-transparent border-0 p-0 cursor-pointer'
+                                onClick={() => {
                                     setIsLoading(true);
                                     setTimeout(() => {
                                         setIsLoading(false);
@@ -199,7 +198,7 @@ export default function MagicLinkLogin() {
                                 }}
                             >
                                 {isLoading ? 'Sending...' : 'Resend'}
-                            </a>
+                            </button>
                         </div>
                         <div className='text-sm text-center text-gray-500 mt-2'>
                             <NextLink
@@ -212,6 +211,6 @@ export default function MagicLinkLogin() {
                     </CardFooter>
                 </>
             )}
-        </Card>
+        </>
     );
 }

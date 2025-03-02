@@ -2,7 +2,7 @@ import { MagicLogin } from '@/sections';
 
 export const metadata = {
     title: 'Login with Magic Link',
-    description: 'Password-less login with secure magic links sent to your email.',
+    description: 'Access your account with a secure, passwordless login link sent to your email.',
 };
 
 export default function MagicLoginPage() {
