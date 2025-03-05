@@ -1,12 +1,59 @@
 'use client';
 
+import { CheckCircle, Mail } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
+
+import Loading from '@/components/loading';
+import { PATH, PATH_AUTH } from '@/routes';
+import { auth } from '@workspace/auth/client';
 import { Button } from '@workspace/ui/components/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@workspace/ui/components/card';
-import { CheckCircle, Mail } from 'lucide-react';
 
 export default function VerifyEmail() {
-    // This could be a state that changes when confirmation is successful
-    const isConfirmed = true;
+    const router = useRouter();
+    const searchParams = useSearchParams();
+
+    const [isConfirmed, setIsConfirmed] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+
+    const token = searchParams.get('token');
+
+    useEffect(() => {
+        setIsLoading(true);
+
+        if (!token) {
+            toast.error('Invalid token');
+            setIsLoading(false);
+            return;
+        }
+
+        async function verifyEmail() {
+            try {
+                const { error } = await auth.verifyEmail({ query: { token } });
+                if (error) {
+                    toast.error('Failed to verify email');
+                    setIsLoading(false);
+                    router.push(PATH_AUTH.login.password);
+                    return;
+                }
+
+                setIsConfirmed(true);
+                router.push(PATH.dashboard);
+            } catch (error) {
+                console.log('Error verifying email', error);
+                toast.error('Failed to verify email');
+                setIsLoading(false);
+            }
+        }
+
+        verifyEmail();
+    }, []);
+
+    if (isLoading) {
+        return <Loading />;
+    }
 
     return (
         <Card className='w-full max-w-md'>

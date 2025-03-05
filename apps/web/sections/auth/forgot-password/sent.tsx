@@ -1,13 +1,43 @@
 'use client';
 
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, Loader2 } from 'lucide-react';
 import NextLink from 'next/link';
+import { useCallback, useState } from 'react';
+import { toast } from 'sonner';
 
 import { PATH_AUTH } from '@/routes';
+import { auth } from '@workspace/auth/client';
 import { Button } from '@workspace/ui/components/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@workspace/ui/components/card';
 
-export default function ForgotPasswordSent() {
+interface ForgotPasswordSentProps {
+    email: string;
+}
+
+export default function ForgotPasswordSent({ email }: ForgotPasswordSentProps) {
+    const [isLoading, setIsLoading] = useState(false);
+    const onResend = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const { error } = await auth.forgetPassword({
+                email,
+                redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}${PATH_AUTH.resetPassword}`,
+            });
+
+            setIsLoading(false);
+
+            if (error) {
+                console.error('Failed to send password reset email:', error);
+                toast.error('Failed to send password reset email');
+            }
+
+            toast.success('Password reset email sent successfully');
+        } catch (err) {
+            console.error('Failed to resend password reset email:', err);
+            toast.error('Failed to send password reset email');
+        }
+    }, [email]);
+
     return (
         <Card className='w-full max-w-md'>
             <CardHeader className='space-y-1'>
@@ -29,8 +59,15 @@ export default function ForgotPasswordSent() {
                 </div>
             </CardContent>
             <CardFooter className='flex flex-col space-y-2'>
-                <Button variant='outline' className='w-full'>
-                    Resend email
+                <Button disabled={isLoading} onClick={onResend} variant='outline' className='w-full'>
+                    {isLoading ? (
+                        <>
+                            <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                            Resending...
+                        </>
+                    ) : (
+                        'Resend'
+                    )}
                 </Button>
                 <div className='text-sm text-center text-gray-500'>
                     <NextLink href={PATH_AUTH.login.magic} className='text-blue-500 hover:text-blue-700 font-medium'>

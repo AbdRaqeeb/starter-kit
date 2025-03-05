@@ -2,16 +2,21 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import NextLink from 'next/link';
-import { useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useCallback, useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
 import { z } from 'zod';
 
-import { PATH_AUTH } from '@/routes';
+import LoadingButton from '@/components/loading-button';
+import { PATH, PATH_AUTH } from '@/routes';
+import { auth } from '@workspace/auth/client';
 import { Button } from '@workspace/ui/components/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@workspace/ui/components/card';
 import { Checkbox } from '@workspace/ui/components/checkbox';
 import { Input } from '@workspace/ui/components/input';
 import { Label } from '@workspace/ui/components/label';
+import { PasswordInput } from '@workspace/ui/components/password-input';
 
 // Define validation schema
 const registerSchema = z
@@ -38,15 +43,13 @@ const registerSchema = z
 type RegisterFormData = z.infer<typeof registerSchema>;
 
 export default function Register() {
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const redirectTo = searchParams.get('redirectTo');
+
     const [isLoading, setIsLoading] = useState(false);
 
-    const {
-        register,
-        handleSubmit,
-        formState: { errors },
-        setValue,
-        watch,
-    } = useForm<RegisterFormData>({
+    const { register, handleSubmit, formState, setValue, watch } = useForm<RegisterFormData>({
         resolver: zodResolver(registerSchema),
         defaultValues: {
             firstName: '',
@@ -57,45 +60,68 @@ export default function Register() {
             terms: false,
         },
     });
+    const { errors } = formState;
 
-    const onSubmit = (data: RegisterFormData) => {
+    const onSubmit = useCallback(async (payload: RegisterFormData) => {
         setIsLoading(true);
 
-        // Simulate API call
-        setTimeout(() => {
+        try {
+            const { error } = await auth.signUp.email({
+                name: `${payload?.firstName ?? ''} ${payload?.lastName ?? ''}`,
+                email: payload.email,
+                password: payload.password,
+            });
+
+            if (error) {
+                setIsLoading(false);
+                console.log('[Register][Error]: ', error);
+                toast.error(error?.message || 'An error occurred');
+                return;
+            }
+
+            if (redirectTo) {
+                router.push(redirectTo);
+                return;
+            }
+
+            router.push(PATH.dashboard);
+        } catch (error) {
+            toast.error(error?.message || 'An error occurred. Please try again!');
             setIsLoading(false);
-            console.log('Signup submitted', data);
-            // Redirect or show success message
-        }, 1500);
-    };
+        }
+    }, []);
 
     return (
-        <Card className='w-full max-w-md shadow-sm border border-gray-200'>
+        <Card className='w-full max-w-2xl shadow-sm border border-gray-200'>
             <CardHeader className='pb-2'>
                 <CardTitle className='text-2xl font-semibold'>Create an account</CardTitle>
                 <CardDescription>Enter your information to create your account</CardDescription>
             </CardHeader>
             <CardContent>
                 <form onSubmit={handleSubmit(onSubmit)} className='space-y-4'>
-                    <div className='space-y-1'>
-                        <Label htmlFor='firstName'>First name</Label>
-                        <Input
-                            id='firstName'
-                            placeholder='John'
-                            className={`h-10 ${errors.firstName ? 'border-red-500' : ''}`}
-                            {...register('firstName')}
-                        />
-                        {errors.firstName && <p className='text-red-500 text-sm mt-1'>{errors.firstName.message}</p>}
-                    </div>
-                    <div className='space-y-1'>
-                        <Label htmlFor='lastName'>Last name</Label>
-                        <Input
-                            id='lastName'
-                            placeholder='Doe'
-                            className={`h-10 ${errors.lastName ? 'border-red-500' : ''}`}
-                            {...register('lastName')}
-                        />
-                        {errors.lastName && <p className='text-red-500 text-sm mt-1'>{errors.lastName.message}</p>}
+                    <div className='flex gap-4'>
+                        <div className='space-y-1 flex-1'>
+                            <Label htmlFor='firstName'>First name</Label>
+                            <Input
+                                id='firstName'
+                                placeholder='John'
+                                className={`h-10 ${errors.firstName ? 'border-red-500' : ''}`}
+                                {...register('firstName')}
+                            />
+                            {errors.firstName && (
+                                <p className='text-red-500 text-sm mt-1'>{errors.firstName.message}</p>
+                            )}
+                        </div>
+                        <div className='space-y-1 flex-1'>
+                            <Label htmlFor='lastName'>Last name</Label>
+                            <Input
+                                id='lastName'
+                                placeholder='Doe'
+                                className={`h-10 ${errors.lastName ? 'border-red-500' : ''}`}
+                                {...register('lastName')}
+                            />
+                            {errors.lastName && <p className='text-red-500 text-sm mt-1'>{errors.lastName.message}</p>}
+                        </div>
                     </div>
                     <div className='space-y-1'>
                         <Label htmlFor='email'>Email</Label>
@@ -110,10 +136,9 @@ export default function Register() {
                     </div>
                     <div className='space-y-1'>
                         <Label htmlFor='password'>Password</Label>
-                        <Input
+                        <PasswordInput
                             id='password'
                             placeholder='••••••••'
-                            type='password'
                             className={`h-10 ${errors.password ? 'border-red-500' : ''}`}
                             {...register('password')}
                         />
@@ -121,10 +146,9 @@ export default function Register() {
                     </div>
                     <div className='space-y-1'>
                         <Label htmlFor='confirmPassword'>Confirm Password</Label>
-                        <Input
+                        <PasswordInput
                             id='confirmPassword'
                             placeholder='••••••••'
-                            type='password'
                             className={`h-10 ${errors.confirmPassword ? 'border-red-500' : ''}`}
                             {...register('confirmPassword')}
                         />
@@ -152,9 +176,13 @@ export default function Register() {
                         </Label>
                     </div>
                     {errors.terms && <p className='text-red-500 text-sm mt-1'>{errors.terms.message}</p>}
-                    <Button type='submit' className='w-full h-10' disabled={isLoading}>
-                        {isLoading ? 'Creating account...' : 'Create account'}
-                    </Button>
+
+                    <LoadingButton
+                        isLoading={isLoading}
+                        loadingText='Creating account...'
+                        text='Create account'
+                        className='h-10'
+                    />
                 </form>
             </CardContent>
 

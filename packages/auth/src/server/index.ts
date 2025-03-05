@@ -75,7 +75,7 @@ export const auth = betterAuth({
             await redis.del(key);
         },
     },
-    user: { ...schema.user },
+    user: { ...schema.user, deleteUser: { enabled: true } },
     session: {
         ...schema.session,
         cookieCache: {
@@ -86,7 +86,7 @@ export const auth = betterAuth({
     verification: { ...schema.verification },
     account: { ...schema.account },
     jwks: { ...schema.jwks },
-    databaseHooks: { user: { ...hooks.user } },
+    databaseHooks: { user: { ...hooks.user() } },
     plugins: [
         emailOTP({
             otpLength: 6,
@@ -95,7 +95,12 @@ export const auth = betterAuth({
             disableSignUp: true,
             sendVerificationOTP: betterAuthEmails.sendVerificationOTP,
         }),
-        username(),
+        username({
+            minUsernameLength: 3,
+            usernameValidator: (username) => {
+                if (username === 'admin') return false;
+            },
+        }),
         openAPI(),
         jwt(),
         bearer(),

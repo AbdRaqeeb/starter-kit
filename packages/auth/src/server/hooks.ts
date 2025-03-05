@@ -1,12 +1,15 @@
 export const hooks = {
     user: () => ({
         create: {
-            before: async (user) => {
+            before: async (user, _ctx) => {
+                const [firstName, lastName] = user?.name?.split(' ') ?? [];
+                const username = user?.email?.split('@')[0];
                 return {
                     data: {
                         ...user,
-                        firstName: user?.name?.split(' ')[0] || '',
-                        lastName: user?.name?.split(' ')[1] || '',
+                        username: user?.username ?? username,
+                        first_name: firstName ?? '',
+                        last_name: lastName ?? '',
                     },
                 };
             },

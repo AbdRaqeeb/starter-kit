@@ -2,14 +2,18 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertCircle } from 'lucide-react';
-import { useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
 import { z } from 'zod';
 
-import { Button } from '@workspace/ui/components/button';
+import LoadingButton from '@/components/loading-button';
+import { PATH_AUTH } from '@/routes';
+import { auth } from '@workspace/auth/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@workspace/ui/components/card';
-import { Input } from '@workspace/ui/components/input';
 import { Label } from '@workspace/ui/components/label';
+import { PasswordInput } from '@workspace/ui/components/password-input';
 
 // Define validation schema
 const resetPasswordSchema = z
@@ -30,6 +34,11 @@ const resetPasswordSchema = z
 type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
 
 export default function ResetPassword() {
+    const router = useRouter();
+    const searchParams = useSearchParams();
+
+    const token = searchParams.get('token');
+
     const [isLoading, setIsLoading] = useState(false);
 
     const {
@@ -38,22 +47,39 @@ export default function ResetPassword() {
         formState: { errors },
     } = useForm<ResetPasswordFormData>({
         resolver: zodResolver(resetPasswordSchema),
-        defaultValues: {
-            password: '',
-            confirmPassword: '',
-        },
+        defaultValues: { password: '', confirmPassword: '' },
     });
 
-    const onSubmit = (data: ResetPasswordFormData) => {
+    useEffect(() => {
+        if (!token) {
+            toast.error('Invalid token');
+        }
+    }, []);
+
+    const onSubmit = useCallback(async (payload: ResetPasswordFormData) => {
         setIsLoading(true);
 
-        // Simulate API call
-        setTimeout(() => {
+        try {
+            const { error } = await auth.resetPassword({
+                newPassword: payload.password,
+                token,
+            });
+
+            if (error) {
+                setIsLoading(false);
+                console.log('[ResetPassword][Error]: ', error);
+                toast.error(error?.message || 'An error occurred');
+                return;
+            }
+
+            toast.success('Password reset successful');
+
+            router.push(PATH_AUTH.login.password);
+        } catch (error) {
+            toast.error(error?.message || 'An error occurred. Please try again!');
             setIsLoading(false);
-            console.log('Reset password submitted:', data);
-            // Redirect to login page or show success message
-        }, 1500);
-    };
+        }
+    }, []);
 
     return (
         <Card className='w-full max-w-md'>
@@ -66,10 +92,9 @@ export default function ResetPassword() {
                     <div className='space-y-4'>
                         <div className='space-y-2'>
                             <Label htmlFor='password'>New Password</Label>
-                            <Input
+                            <PasswordInput
                                 id='password'
                                 placeholder='••••••••'
-                                type='password'
                                 className={errors.password ? 'border-red-500' : ''}
                                 {...register('password')}
                             />
@@ -77,10 +102,9 @@ export default function ResetPassword() {
                         </div>
                         <div className='space-y-2'>
                             <Label htmlFor='confirmPassword'>Confirm New Password</Label>
-                            <Input
+                            <PasswordInput
                                 id='confirmPassword'
                                 placeholder='••••••••'
-                                type='password'
                                 className={errors.confirmPassword ? 'border-red-500' : ''}
                                 {...register('confirmPassword')}
                             />
@@ -100,9 +124,7 @@ export default function ResetPassword() {
                                 </ul>
                             </div>
                         </div>
-                        <Button type='submit' className='w-full' disabled={isLoading}>
-                            {isLoading ? 'Resetting...' : 'Reset password'}
-                        </Button>
+                        <LoadingButton isLoading={isLoading} loadingText='Resetting...' text='Reset password' />
                     </div>
                 </form>
             </CardContent>

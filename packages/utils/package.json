@@ -12,10 +12,12 @@
     "./config/client": "./src/config/client.ts",
     "./logger": "./src/logger/index.ts",
     "./request": "./src/lib/request.ts",
+    "./string": "./src/lib/string.ts",
     "./metadata": "./src/lib/metadata.ts",
     "./types": "./src/types/index.ts"
   },
   "dependencies": {
+    "nanoid": "^5.1.2",
     "pino": "^9.6.0"
   }
 }

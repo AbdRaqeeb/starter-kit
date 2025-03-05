@@ -1,7 +1,8 @@
 'use client';
 
-import { Loader2 } from 'lucide-react';
 import { ReactNode, useEffect, useState } from 'react';
+
+import Loading from './loading';
 
 interface ClientOnlyProps {
     children: ReactNode;
@@ -21,13 +22,7 @@ export function ClientOnly({ children, fallback }: ClientOnlyProps) {
     }, []);
 
     if (!isMounted) {
-        return (
-            fallback || (
-                <div className='w-full flex items-center justify-center py-8'>
-                    <Loader2 className='h-8 w-8 animate-spin text-primary' />
-                </div>
-            )
-        );
+        return fallback || <Loading />;
     }
 
     return <>{children}</>;

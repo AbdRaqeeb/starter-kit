@@ -1,18 +1,22 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2 } from 'lucide-react';
 import NextLink from 'next/link';
-import { useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useCallback, useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
 import { z } from 'zod';
 
-import { PATH_AUTH } from '@/routes';
+import LoadingButton from '@/components/loading-button';
+import { PATH, PATH_AUTH } from '@/routes';
+import { auth } from '@workspace/auth/client';
 import { Button } from '@workspace/ui/components/button';
 import { CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@workspace/ui/components/card';
 import { Checkbox } from '@workspace/ui/components/checkbox';
 import { Input } from '@workspace/ui/components/input';
 import { Label } from '@workspace/ui/components/label';
+import { PasswordInput } from '@workspace/ui/components/password-input';
 
 // Define validation schema
 const loginSchema = z.object({
@@ -23,30 +27,42 @@ const loginSchema = z.object({
 type LoginFormData = z.infer<typeof loginSchema>;
 
 export default function PasswordLogin() {
+    const router = useRouter();
+    const searchParams = useSearchParams();
+
+    const redirectTo = searchParams.get('redirectTo');
     const [isLoading, setIsLoading] = useState(false);
 
-    const {
-        register,
-        handleSubmit,
-        formState: { errors },
-    } = useForm<LoginFormData>({
+    const { register, handleSubmit, formState } = useForm<LoginFormData>({
         resolver: zodResolver(loginSchema),
-        defaultValues: {
-            email: '',
-            password: '',
-        },
+        defaultValues: { email: '', password: '' },
     });
+    const { errors } = formState;
 
-    const onSubmit = (data: LoginFormData) => {
+    const onSubmit = useCallback(async (payload: LoginFormData) => {
         setIsLoading(true);
 
-        // Simulate API call for password login
-        setTimeout(() => {
+        try {
+            const { error } = await auth.signIn.email(payload);
+
+            if (error) {
+                setIsLoading(false);
+                console.log('[LoginWithPassword][Error]: ', error);
+                toast.error(error?.message || 'An error occurred');
+                return;
+            }
+
+            if (redirectTo) {
+                router.push(redirectTo);
+                return;
+            }
+
+            router.push(PATH.dashboard);
+        } catch (error) {
+            toast.error(error?.message || 'An error occurred. Please try again!');
             setIsLoading(false);
-            console.log('Password login submitted:', data);
-            // Redirect to dashboard or handle login success
-        }, 1500);
-    };
+        }
+    }, []);
 
     return (
         <>
@@ -78,10 +94,9 @@ export default function PasswordLogin() {
                                     Forgot password?
                                 </NextLink>
                             </div>
-                            <Input
+                            <PasswordInput
                                 id='password'
                                 placeholder='••••••••'
-                                type='password'
                                 className={errors.password ? 'border-red-500' : ''}
                                 {...register('password')}
                             />
@@ -93,16 +108,7 @@ export default function PasswordLogin() {
                                 Remember me
                             </Label>
                         </div>
-                        <Button type='submit' className='w-full' disabled={isLoading}>
-                            {isLoading ? (
-                                <>
-                                    <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-                                    Signing in...
-                                </>
-                            ) : (
-                                'Sign in'
-                            )}
-                        </Button>
+                        <LoadingButton isLoading={isLoading} loadingText='Signing in...' text='Sign in' />
                     </div>
                 </form>
             </CardContent>

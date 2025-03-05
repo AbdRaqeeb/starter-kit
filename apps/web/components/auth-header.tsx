@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import * as React from 'react';
+
+import { PATH } from '@/routes';
 import { ThemeToggle } from './theme-toggle';
 
 interface AuthHeaderProps {
@@ -15,7 +17,7 @@ export function AuthHeader({ appName, logo }: AuthHeaderProps) {
             <div className='container flex h-14 items-center px-4 mx-auto max-w-7xl'>
                 <div className='flex items-center gap-2 mr-4'>
                     {logo}
-                    <Link href='/' className='font-semibold'>
+                    <Link href={PATH.dashboard} className='font-semibold'>
                         {appName}
                     </Link>
                 </div>

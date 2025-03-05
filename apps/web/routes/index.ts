@@ -18,5 +18,6 @@ export const PATH_AUTH = {
 };
 
 export const PATH = {
+    root: '/',
     dashboard: '/dashboard',
 };

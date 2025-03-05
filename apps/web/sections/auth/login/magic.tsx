@@ -1,13 +1,14 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ArrowRight, CheckCircle, Loader2 } from 'lucide-react';
+import { ArrowRight, CheckCircle } from 'lucide-react';
 import NextLink from 'next/link';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
+import LoadingButton from '@/components/loading-button';
 import { PATH, PATH_AUTH } from '@/routes';
 import { authClient } from '@workspace/auth/client';
 import { Button } from '@workspace/ui/components/button';
@@ -35,7 +36,7 @@ export default function MagicLinkLogin() {
     const { register, handleSubmit, formState, reset } = methods;
     const { errors } = formState;
 
-    async function onSubmit(payload: MagicLinkFormData) {
+    const onSubmit = useCallback(async (payload: MagicLinkFormData) => {
         setIsLoading(true);
 
         try {
@@ -56,7 +57,7 @@ export default function MagicLinkLogin() {
             toast.error(error?.message || 'An error occurred while sending the magic link');
             setIsLoading(false);
         }
-    }
+    }, []);
 
     const resetForm = () => {
         setIsLinkSent(false);
@@ -89,19 +90,12 @@ export default function MagicLinkLogin() {
                                         <p className='text-red-500 text-sm mt-1'>{errors.email.message}</p>
                                     )}
                                 </div>
-                                <Button type='submit' className='w-full' disabled={isLoading}>
-                                    {isLoading ? (
-                                        <>
-                                            <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-                                            Sending...
-                                        </>
-                                    ) : (
-                                        <>
-                                            Send magic link
-                                            <ArrowRight className='ml-2 h-4 w-4' />
-                                        </>
-                                    )}
-                                </Button>
+                                <LoadingButton
+                                    isLoading={isLoading}
+                                    loadingText='Sending...'
+                                    text='Sign in'
+                                    icon={<ArrowRight className='ml-2 h-4 w-4' />}
+                                />
                             </div>
                         </form>
                     </CardContent>

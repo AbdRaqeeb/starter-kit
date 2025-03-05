@@ -112,7 +112,7 @@ export const betterAuthEmails = {
 
         await emailService.send(
             EmailTypes.VerifyEmail,
-            { url: `${Config.clientUrl}/verification?token=${token}` },
+            { url: `${Config.clientUrl}/auth/verify?token=${token}` },
             {
                 from: FROM_UPDATE_EMAIL,
                 to: user.email,
@@ -125,7 +125,7 @@ export const betterAuthEmails = {
         await emailService.send(
             EmailTypes.ForgotPassword,
             {
-                url: `${Config.clientUrl}/forgot-password?token=${token}`,
+                url: `${Config.clientUrl}/auth/reset-password?token=${token}`,
                 expiry: `${OTP_EXPIRY.minutes.sixty.display} ${OTP_EXPIRY.minutes.sixty.unit}`,
             },
             { from: FROM_UPDATE_EMAIL, to: user.email, subject: `Forgot Password?` },

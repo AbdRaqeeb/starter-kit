@@ -4,7 +4,7 @@ import Link from 'next/link';
 import * as React from 'react';
 import { ThemeToggle } from './theme-toggle';
 
-interface HeaderProps {
+interface NavbarProps {
     appName: string;
     logo?: React.ReactNode;
     navItems?: {
@@ -14,7 +14,7 @@ interface HeaderProps {
     rightContent?: React.ReactNode;
 }
 
-export function Header({ appName, logo, navItems = [], rightContent }: HeaderProps) {
+export function Navbar({ appName, logo, navItems = [], rightContent }: NavbarProps) {
     return (
         <header className='sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60'>
             <div className='container flex h-14 items-center'>

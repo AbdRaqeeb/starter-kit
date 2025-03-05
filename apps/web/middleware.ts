@@ -1,10 +1,12 @@
-import { PATH, PATH_AUTH } from '@/routes';
+import { PATH, PATH_AUTH, ROOT_AUTH } from '@/routes';
 import { type NextRequest, NextResponse } from 'next/server';
 
 import { auth } from '@workspace/auth/client';
 
 export default async function authMiddleware(request: NextRequest) {
     try {
+        const { pathname } = request.nextUrl;
+
         const currentPath = new URL(request.url).pathname;
 
         const session = await auth.getSession({
@@ -17,13 +19,19 @@ export default async function authMiddleware(request: NextRequest) {
 
         const { data, error } = session;
 
-        console.log('DATA', data);
-        console.log('ERROR', error);
-
         // Always check authentication first
         if (error || !data) {
+            const loginUrl = new URL(PATH_AUTH.login.magic, request.url);
+            if (pathname !== (PATH_AUTH.login.magic || PATH_AUTH.login.password) && !pathname.startsWith(ROOT_AUTH)) {
+                loginUrl.searchParams.set('redirectTo', pathname);
+            }
+
             console.error('Error getting session:', error);
             return NextResponse.redirect(new URL(PATH_AUTH.login.magic, request.url));
+        }
+
+        if (pathname.startsWith(ROOT_AUTH)) {
+            return NextResponse.redirect(new URL(PATH.dashboard, request.url));
         }
 
         if (currentPath === '/') {

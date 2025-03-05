@@ -2,16 +2,18 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import NextLink from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
 import { z } from 'zod';
 
+import LoadingButton from '@/components/loading-button';
 import { PATH_AUTH } from '@/routes';
-import { Button } from '@workspace/ui/components/button';
+import { auth } from '@workspace/auth/client';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@workspace/ui/components/card';
 import { Input } from '@workspace/ui/components/input';
 import { Label } from '@workspace/ui/components/label';
+import ForgotPasswordSent from './sent';
 
 // Define validation schema
 const forgotPasswordSchema = z.object({
@@ -22,7 +24,8 @@ type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
 
 export default function ForgotPassword() {
     const [isLoading, setIsLoading] = useState(false);
-    const router = useRouter();
+    const [isSent, setIsSent] = useState(false);
+    const [email, setEmail] = useState('');
 
     const {
         register,
@@ -30,22 +33,37 @@ export default function ForgotPassword() {
         formState: { errors },
     } = useForm<ForgotPasswordFormData>({
         resolver: zodResolver(forgotPasswordSchema),
-        defaultValues: {
-            email: '',
-        },
+        defaultValues: { email: '' },
     });
 
-    const onSubmit = (data: ForgotPasswordFormData) => {
+    const onSubmit = useCallback(async (payload: ForgotPasswordFormData) => {
         setIsLoading(true);
+        setEmail(payload.email);
 
-        // Simulate API call
-        setTimeout(() => {
+        try {
+            const { error } = await auth.forgetPassword({
+                email: payload.email,
+                redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}${PATH_AUTH.resetPassword}`,
+            });
+
+            if (error) {
+                setIsLoading(false);
+                console.log('[LoginWithPassword][Error]: ', error);
+                toast.error(error?.message || 'An error occurred');
+                return;
+            }
+
             setIsLoading(false);
-            console.log('Forgot password submitted for:', data.email);
-            // Redirect to confirmation page
-            router.push(PATH_AUTH.forgotPasswordSent);
-        }, 1500);
-    };
+            setIsSent(true);
+        } catch (error) {
+            toast.error(error?.message || 'An error occurred. Please try again!');
+            setIsLoading(false);
+        }
+    }, []);
+
+    if (isSent) {
+        return <ForgotPasswordSent email={email} />;
+    }
 
     return (
         <Card className='w-full max-w-md'>
@@ -69,9 +87,7 @@ export default function ForgotPassword() {
                             />
                             {errors.email && <p className='text-red-500 text-sm mt-1'>{errors.email.message}</p>}
                         </div>
-                        <Button type='submit' className='w-full' disabled={isLoading}>
-                            {isLoading ? 'Sending...' : 'Send reset link'}
-                        </Button>
+                        <LoadingButton isLoading={isLoading} loadingText='Sending...' text='Send reset link' />
                     </div>
                 </form>
             </CardContent>
