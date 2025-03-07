@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@workspace/ui/components/avatar';
 import { Button } from '@workspace/ui/components/button';
@@ -12,8 +13,17 @@ import {
     DropdownMenuShortcut,
     DropdownMenuTrigger,
 } from '@workspace/ui/components/dropdown-menu';
+import { PATH_AUTH } from '@/routes';
+import { auth } from '@workspace/auth/client';
 
 export function ProfileDropdown() {
+    const router = useRouter();
+
+    async function onLogout() {
+        await auth.signOut();
+        router.push(PATH_AUTH.login.magic);
+    }
+
     return (
         <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
@@ -53,9 +63,8 @@ export function ProfileDropdown() {
                     </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={onLogout}>
                     Log out
-                    <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>
                 </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>

@@ -1,3 +1,5 @@
+'use client';
+
 import { Search } from '@/components/search';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Header } from '@/layouts/header';

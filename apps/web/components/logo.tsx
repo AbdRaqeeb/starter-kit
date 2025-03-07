@@ -1,23 +1,27 @@
 'use client';
 
-import { cn } from '@workspace/ui/lib/utils';
 import { useTheme } from 'next-themes';
 import Image from 'next/image';
+import { memo } from 'react';
+
+import { cn } from '@workspace/ui/lib/utils';
 
 interface LogoProps {
     className?: string;
     size?: number | string;
     color?: string;
     strokeWidth?: number;
-    [key: string]: any;
+    [key: string]: unknown;
 }
 
-export default function Logo({ className, size = 24, ...props }: LogoProps) {
-    const { theme } = useTheme();
+function Logo({ className, size = 24, ...props }: LogoProps) {
+    const { theme, resolvedTheme } = useTheme();
     const dimensions = typeof size === 'number' ? size : 24;
 
-    // Filter out SVG-specific props that shouldn't be passed to a div
     const { absoluteStrokeWidth, ref, stroke, fill, ...divProps } = props;
+
+    // Use resolvedTheme which handles 'system' preference by returning the actual theme ('dark' or 'light')
+    const actualTheme = resolvedTheme || 'light';
 
     return (
         <div
@@ -32,7 +36,7 @@ export default function Logo({ className, size = 24, ...props }: LogoProps) {
             {...divProps}
         >
             <Image
-                src={`/images/logos/${theme === 'dark' ? 'light' : 'dark'}-logo.svg`}
+                src={`/images/logos/${actualTheme === 'dark' ? 'light' : 'dark'}-logo.svg`}
                 alt='Logo'
                 className='hidden dark:block'
                 fill
@@ -42,3 +46,5 @@ export default function Logo({ className, size = 24, ...props }: LogoProps) {
         </div>
     );
 }
+
+export default memo(Logo);
