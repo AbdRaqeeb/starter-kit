@@ -8,3 +8,10 @@ export { default as VerifyEmail } from './auth/verify-email';
 export { default as VerifyMagic } from './auth/magic';
 
 export { default as Dashboard } from './dashboard';
+
+// settings
+export { default as AccountSettings } from './settings/account';
+export { default as AppearanceSettings } from './settings/appearance';
+export { default as DisplaySettings } from './settings/display';
+export { default as NotificationSettings } from './settings/notifications';
+export { default as ProfileSettings } from './settings/profile';

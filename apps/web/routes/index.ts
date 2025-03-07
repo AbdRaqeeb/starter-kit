@@ -17,7 +17,17 @@ export const PATH_AUTH = {
     verifyToken: path(ROOT_AUTH, '/verify-token'),
 };
 
+export const ROOT_SETTINGS = '/settings';
+
 export const PATH = {
     root: '/',
     dashboard: '/dashboard',
+    settings: {
+        root: ROOT_SETTINGS,
+        profile: path(ROOT_SETTINGS, '/profile'),
+        account: path(ROOT_SETTINGS, '/account'),
+        notifications: path(ROOT_SETTINGS, '/notifications'),
+        appearance: path(ROOT_SETTINGS, '/appearance'),
+        display: path(ROOT_SETTINGS, '/display'),
+    },
 };
