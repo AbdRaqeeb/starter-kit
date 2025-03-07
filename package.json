@@ -4,7 +4,6 @@
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
     "@workspace/typescript-config": "workspace:*",
-    "prettier": "^3.2.5",
     "turbo": "^2.3.0",
     "typescript": "5.5.4"
   },
